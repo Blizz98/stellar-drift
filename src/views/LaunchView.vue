@@ -6,13 +6,14 @@ import { useCaptainStore } from '@/stores/captain'
 import { SHIPS, shipById } from '@/data/ships'
 import { destinationById } from '@/data/destinations'
 import DestinationPicker from '@/components/DestinationPicker.vue'
+import ShipPicker from '@/components/ShipPicker.vue'
 
 const router = useRouter()
 const expedition = useExpeditionStore()
 const captain = useCaptainStore()
 
 // ——— form state ———
-const selectedShipId = ref('explorer')
+const selectedShipId = ref(null)
 const selectedDestId = ref(null)
 const voyageName     = ref('')
 
@@ -33,26 +34,10 @@ const canLaunch = computed(() =>
   voyageName.value.trim() && dest.value && ship.value && computedDurationOK.value
 )
 
-const shipOptions = computed(() =>
-  SHIPS.map(s => ({
-    ...s,
-    unlocked: s.rankRequired <= captain.currentRank.rank
-  }))
-)
-
 // Suggest a default voyage name when destination changes
 function applyDefaultName() {
   if (!voyageName.value && dest.value) {
     voyageName.value = `Voyage to ${dest.value.name}`
-  }
-}
-
-function pickShip(shipOpt) {
-  if (!shipOpt.unlocked) return
-  selectedShipId.value = shipOpt.id
-  // If the new ship can't reach the currently selected dest, clear it
-  if (selectedDestId.value && !computedDurationOK.value) {
-    selectedDestId.value = null
   }
 }
 
@@ -94,31 +79,7 @@ function launch() {
         <p class="step__lede">Each hull has a max voyage range and a cruise velocity.</p>
       </header>
 
-      <div class="ships">
-        <button
-          v-for="s in shipOptions"
-          :key="s.id"
-          type="button"
-          class="ship"
-          :class="{
-            'ship--active': selectedShipId === s.id,
-            'ship--locked': !s.unlocked
-          }"
-          :disabled="!s.unlocked"
-          @click="pickShip(s)"
-        >
-          <header class="ship__head">
-            <h3 class="ship__name">{{ s.name }}</h3>
-            <span v-if="!s.unlocked" class="ship__lock label">RANK {{ s.rankRequired }}</span>
-          </header>
-          <p class="ship__tag">{{ s.tagline }}</p>
-          <dl class="ship__stats mono">
-            <div><dt>RANGE</dt><dd>{{ s.maxRangeDays }}d</dd></div>
-            <div><dt>VEL</dt><dd>{{ s.velocity.toFixed(1) }}c</dd></div>
-            <div v-if="s.bonus"><dt>BIAS</dt><dd>{{ s.bonus.slice(0, 4).toUpperCase() }}</dd></div>
-          </dl>
-        </button>
-      </div>
+      <ShipPicker v-model="selectedShipId" />
     </section>
 
     <!-- Step 2: Destination -->
