@@ -89,3 +89,11 @@ export function shipById(id) {
 export function shipsAvailable(rank) {
   return SHIPS.filter(s => s.rankRequired <= rank)
 }
+
+export function visibleShips(captainRank) {
+  const sorted = [...SHIPS].sort((a, b) => a.captainRank - b.captainRank)
+  const unlocked = sorted.filter(d => d.rankRequired <= captainRank)
+  const locked    = sorted.filter(d => d.rankRequired >  captainRank).slice(0, 2)
+  const hiddenCount = sorted.length - unlocked.length - locked.length
+  return { unlocked, locked, hiddenCount }
+}
