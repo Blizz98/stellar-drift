@@ -90,7 +90,7 @@ function launch() {
     <section class="step">
       <header class="step__head">
         <span class="label">Step 01</span>
-        <h2 class="step__title">Select hull</h2>
+        <h2 class="step__title">Select your ship</h2>
         <p class="step__lede">Each hull has a max voyage range and a cruise velocity.</p>
       </header>
 
