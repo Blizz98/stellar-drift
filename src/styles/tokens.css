@@ -1,0 +1,182 @@
+/* ===========================================================
+   Stellar Drift — Design Tokens
+   Aesthetic: hard-sci-fi mission control. Dark void, warm
+   amber instrument lamps, cool cyan active states.
+   Change values here to re-skin the entire application.
+   =========================================================== */
+
+:root {
+  /* — Surfaces — */
+  --void:        #06080F;   /* deepest black, page background */
+  --hull:        #0A0F1C;   /* primary surface */
+  --bulkhead:    #111827;   /* elevated panel */
+  --console:     #161E2E;   /* card / interactive surface */
+  --console-hi:  #1C2538;   /* hover state */
+
+  /* — Lines & dividers — */
+  --line:        #1F2A3D;
+  --line-hi:     #2A3850;
+
+  /* — Text — */
+  --signal:      #ECECEC;   /* primary text */
+  --signal-dim:  #A8AFC0;   /* secondary */
+  --signal-low:  #5C6478;   /* tertiary / placeholder */
+
+  /* — Accents — */
+  --amber:       #E8A846;   /* captain / warm instrument */
+  --amber-soft:  #F5C66B;
+  --amber-deep:  #B07A1E;
+
+  --cyan:        #5DD4F0;   /* active / cool readout */
+  --cyan-soft:   #88E2F5;
+  --cyan-deep:   #2C8FA8;
+
+  --plasma:      #B388F0;   /* rare / milestone */
+  --thrust:      #FF6B4A;   /* warning / engines hot */
+  --verdant:     #5BCB8C;   /* completed / nominal */
+
+  /* — Typography — */
+  --font-display: 'Instrument Serif', 'Times New Roman', serif;
+  --font-body:    'DM Sans', system-ui, -apple-system, sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, 'SF Mono', monospace;
+
+  /* — Spacing scale (8px base) — */
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+
+  /* — Geometry — */
+  --radius-sm: 4px;
+  --radius:    8px;
+  --radius-lg: 14px;
+
+  /* — Motion — */
+  --ease:      cubic-bezier(0.4, 0.0, 0.2, 1);
+  --ease-out:  cubic-bezier(0.0, 0.0, 0.2, 1);
+  --t-fast:    140ms;
+  --t-med:     280ms;
+  --t-slow:    520ms;
+
+  /* — Shadows — */
+  --glow-amber: 0 0 24px -8px rgba(232, 168, 70, 0.5);
+  --glow-cyan:  0 0 24px -8px rgba(93, 212, 240, 0.5);
+  --shadow-1:   0 1px 2px rgba(0,0,0,0.4);
+  --shadow-2:   0 8px 24px -8px rgba(0,0,0,0.5);
+}
+
+/* ----------- Base reset ----------- */
+*, *::before, *::after { box-sizing: border-box; }
+html, body, #app { height: 100%; margin: 0; }
+
+body {
+  background: var(--void);
+  color: var(--signal);
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+button { font: inherit; color: inherit; background: none; border: 0; cursor: pointer; }
+input, textarea, select { font: inherit; color: inherit; }
+a { color: inherit; text-decoration: none; }
+
+/* — Subtle stars on the page background — */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    radial-gradient(1px 1px at 12% 18%, rgba(255,255,255,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 78% 8%, rgba(255,255,255,0.3) 50%, transparent 100%),
+    radial-gradient(1px 1px at 35% 62%, rgba(255,255,255,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 88% 71%, rgba(255,255,255,0.5) 50%, transparent 100%),
+    radial-gradient(1px 1px at 22% 88%, rgba(255,255,255,0.3) 50%, transparent 100%),
+    radial-gradient(2px 2px at 62% 33%, rgba(232,168,70,0.4) 50%, transparent 100%),
+    radial-gradient(1px 1px at 50% 50%, rgba(93,212,240,0.4) 50%, transparent 100%);
+  background-size: 600px 600px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* — Display type utility — */
+.display {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+  line-height: 1.05;
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-feature-settings: 'zero', 'cv01';
+  letter-spacing: 0;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--signal-low);
+}
+
+/* — Form primitives — */
+.input {
+  display: block;
+  width: 100%;
+  padding: var(--s-3) var(--s-4);
+  background: var(--hull);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  color: var(--signal);
+  transition: border-color var(--t-fast) var(--ease), background var(--t-fast) var(--ease);
+}
+.input:focus { outline: 0; border-color: var(--amber); background: var(--bulkhead); }
+.input::placeholder { color: var(--signal-low); }
+
+/* — Button primitives — */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--s-2);
+  padding: var(--s-3) var(--s-5);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  background: var(--console);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  transition: all var(--t-fast) var(--ease);
+}
+.btn:hover { background: var(--console-hi); border-color: var(--line-hi); }
+.btn:active { transform: translateY(1px); }
+
+.btn-primary {
+  background: var(--amber);
+  color: var(--void);
+  border-color: var(--amber);
+  font-weight: 600;
+}
+.btn-primary:hover {
+  background: var(--amber-soft);
+  border-color: var(--amber-soft);
+  box-shadow: var(--glow-amber);
+}
+
+.btn-ghost { background: transparent; }
+
+/* — Scrollbar styling — */
+::-webkit-scrollbar { width: 10px; height: 10px; }
+::-webkit-scrollbar-track { background: var(--void); }
+::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; border: 2px solid var(--void); }
+::-webkit-scrollbar-thumb:hover { background: var(--line-hi); }
