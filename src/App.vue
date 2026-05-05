@@ -4,6 +4,7 @@ import { useRoute, RouterLink, RouterView } from 'vue-router'
 import { useExpeditionStore } from '@/stores/expedition'
 import Chronometer from '@/components/Chronometer.vue'
 import LevelUpModal from '@/components/LevelUpModal.vue'
+import GuidedFirstLaunch from '@/components/GuidedFirstLaunch.vue'
 
 const route = useRoute()
 const expedition = useExpeditionStore()
@@ -76,6 +77,7 @@ const navLinks = computed(() => {
     </main>
 
     <LevelUpModal />
+    <GuidedFirstLaunch />
   </div>
 </template>
 

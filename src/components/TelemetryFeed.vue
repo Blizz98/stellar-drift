@@ -3,7 +3,7 @@ import { computed, onMounted, onUnmounted, ref } from 'vue'
 import { dailyTelemetry } from '@/composables/useFlavorText'
 
 const today = new Date().toISOString().slice(0, 10)
-const lines = computed(() => dailyTelemetry(today, 6))
+const lines = computed(() => dailyTelemetry(today, 50))
 const visible = ref([])
 let interval = null
 
@@ -24,7 +24,7 @@ onMounted(() => {
     i++
   }
   reveal()
-  interval = setInterval(reveal, 4200)
+  interval = setInterval(reveal, 11300)
 })
 
 onUnmounted(() => { if (interval) clearInterval(interval) })

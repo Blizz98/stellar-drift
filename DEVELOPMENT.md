@@ -656,10 +656,11 @@ Reorganized after first-week real-use testing. Tiers reflect *what fixes the big
  
 The single biggest retention failure is users opening the app to four empty habit categories and bouncing. Fix this before anything else.
  
-1. **Guided first-launch flow.** Three screens before LaunchView for first-time users: philosophy in one line, tap-to-accept starter habits per category, auto-launch a 14-day Luna voyage. Reduces first-run decisions from many to one tap per screen. Should detect "no expeditions ever launched" and route there once.
-2. **Pre-filled starter habits with one-tap acceptance.** Concrete suggestions per category (move 20 min, one focus session, read 20 min, in bed by 11). User taps to accept defaults; "customize" is secondary. Eliminates the four-empty-categories paralysis. Pairs with item 1.
+1. ✓ DONE **Guided first-launch flow.** Three screens before LaunchView for first-time users: philosophy in one line, tap-to-accept starter habits per category, auto-launch a 14-day Luna voyage. Reduces first-run decisions from many to one tap per screen. Should detect "no expeditions ever launched" and route there once.
+2. ✓ DONE **Pre-filled starter habits with one-tap acceptance.** Concrete suggestions per category (move 20 min, one focus session, read 20 min, in bed by 11). User taps to accept defaults; "customize" is secondary. Eliminates the four-empty-categories paralysis. Pairs with item 1.
 3. **Edit existing habits.** Currently you can add or remove but not edit. Without this, a typo or miscategorization forces decommission + recreation, which loses the habit's log history. Add an edit modal triggered from `HabitsView` row tap.
 4. **Multiple completions per day.** Some habits are 2× or 3× daily (brushing teeth, water intake). Add a `targetCount` field on Habit (default 1) and a count widget on `HabitCard` that increments toward the target. Completion is `count >= target`. Data layer change in `stores/habits.js`; `Habit` shape gets one new field.
+
 ### Tier 2 — build the daily-return loop
  
 Once users get past day 0, the next failure is forgetting to return.
@@ -679,7 +680,8 @@ Most users who finish voyage 1 don't start voyage 2. Three things help.
 ### Tier 4 — quality-of-life polish
  
 Refinements that make the app *feel* better but don't move retention dramatically.
- 
+
+13. **First app launch settings / settings tab.** We have to make sure that the settings are available for player - subscription, language and more will be managed here. 
 13. **Notes per day per habit.** Long-press or expand-on-tap on `<HabitCard>` opens a small textarea. Persisted via existing `habits.setNote()`. Surface the notes on `<LogView>` for completed voyages.
 14. **Cadence options.** Mon/Wed/Fri habits, weekly habits, not just daily. The `cadence` field is already on the Habit data model. Affects how "today's habits" filter works in the habits store.
 15. **Expedition-rename mid-voyage.** Names sometimes feel wrong after sector 1; let the user change them. Tap voyage name on `StatusReadout` to edit inline.
