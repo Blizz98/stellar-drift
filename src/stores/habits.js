@@ -8,15 +8,17 @@ import { useExpeditionStore } from './expedition'
  * habits forward (or pick a different set). Logs are keyed by date + habit.
  *
  * Habit shape:
- *   id            string
- *   expeditionId  string
- *   name          string
- *   description   string
- *   category      'engineering' | 'navigation' | 'research' | 'life-support'
- *   cadence       'daily' | 'weekday' | 'weekly_3'  (v1: daily only used; rest stubbed)
- *   icon          string (emoji for v1; replace with custom SVG later)
+ *   id                  string
+ *   expeditionId        string
+ *   name                string
+ *   description         string
+ *   category            'engineering' | 'navigation' | 'research' | 'life-support'
+ *   cadence             'daily' | 'weekday' | 'weekly_3'  (v1: daily only used; rest stubbed)
+ *   completionsNeeded   number   (≥1; how many times per day this habit must fire to count as complete)
+ *   icon                string   (emoji for v1; replace with custom SVG later)
  *
- * Logs structure: { [dateISO]: { [habitId]: { completed: bool, note?: string } } }
+ * Logs structure: { [dateISO]: { [habitId]: { count: number, note?: string } } }
+ *   A habit is "complete" for a given day when count >= completionsNeeded.
  */
 
 export const CATEGORIES = {
@@ -52,10 +54,51 @@ export const CATEGORIES = {
 
 const todayISO = () => new Date().toISOString().slice(0, 10)
 
+/**
+ * Migrates older log entries from the binary { completed: bool } shape to the
+ * new { count: number } shape. Runs once on store initialization; harmless on
+ * already-migrated data. Can be removed after all known users have migrated.
+ */
+function migrateLogs(logs) {
+  let changed = false
+  for (const date in logs) {
+    for (const habitId in logs[date]) {
+      const entry = logs[date][habitId]
+      if (entry && 'completed' in entry && !('count' in entry)) {
+        logs[date][habitId] = {
+          count: entry.completed ? 1 : 0,
+          note: entry.note || ''
+        }
+        changed = true
+      }
+    }
+  }
+  return changed
+}
+
+/**
+ * Migrates older habits that don't yet have a `completionsNeeded` field.
+ * Defaults to 1 (binary completion), matching pre-feature behavior.
+ */
+function migrateHabits(habits) {
+  let changed = false
+  for (const h of habits) {
+    if (h.completionsNeeded === undefined) {
+      h.completionsNeeded = 1
+      changed = true
+    }
+  }
+  return changed
+}
+
 export const useHabitsStore = defineStore('habits', () => {
   // ——— state ———
   const habits = ref(loadJSON('habits.list', []))
   const logs   = ref(loadJSON('habits.logs', {}))
+
+  // One-time migrations for users upgrading from the pre-multi-completion schema.
+  if (migrateHabits(habits.value)) saveJSON('habits.list', habits.value)
+  if (migrateLogs(logs.value))     saveJSON('habits.logs',  logs.value)
 
   watch(habits, v => saveJSON('habits.list', v), { deep: true })
   watch(logs,   v => saveJSON('habits.logs',  v), { deep: true })
@@ -71,10 +114,17 @@ export const useHabitsStore = defineStore('habits', () => {
   const todayHabits = computed(() => activeHabits.value)
 
   /**
-   * Returns the completion entry for (date, habitId), or a default.
+   * Returns the completion entry for (date, habitId), with a derived `completed`
+   * property based on the habit's completionsNeeded threshold.
    */
   function getLog(date, habitId) {
-    return logs.value[date]?.[habitId] ?? { completed: false, note: '' }
+    const raw = logs.value[date]?.[habitId] ?? { count: 0, note: '' }
+    const habit = habits.value.find(h => h.id === habitId)
+    const needed = habit?.completionsNeeded ?? 1
+    return {
+      ...raw,
+      completed: raw.count >= needed
+    }
   }
 
   /**
@@ -110,14 +160,17 @@ export const useHabitsStore = defineStore('habits', () => {
       const d = new Date(start)
       d.setDate(d.getDate() + i)
       const iso = d.toISOString().slice(0, 10)
-      const dayDone = expHabits.filter(h => logs.value[iso]?.[h.id]?.completed).length
+      const dayDone = expHabits.filter(h => {
+        const count = logs.value[iso]?.[h.id]?.count ?? 0
+        return count >= (h.completionsNeeded ?? 1)
+      }).length
       sum += dayDone / expHabits.length
     }
     return sum / dayCount
   }
 
   // ——— actions ———
-  function addHabit({ name, description = '', category = 'engineering', icon = null }) {
+  function addHabit({ name, description = '', category = 'engineering', icon = null, completionsNeeded = 1 }) {
     if (!expedition.current) return
     const habit = {
       id: `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
@@ -126,6 +179,7 @@ export const useHabitsStore = defineStore('habits', () => {
       description: description.trim(),
       category,
       cadence: 'daily',
+      completionsNeeded: Math.max(1, completionsNeeded || 1),
       icon: icon || CATEGORIES[category].icon,
       createdAt: todayISO()
     }
@@ -133,16 +187,73 @@ export const useHabitsStore = defineStore('habits', () => {
     return habit
   }
 
+    /**
+   * Updates an existing habit's mutable fields. Immutable fields (id, expeditionId,
+   * createdAt) are protected from accidental overwrite. The current daily log entry
+   * is untouched — if completionsNeeded changes, the derived `completed` flag will
+   * recompute naturally on next read.
+   */
+  function updateHabit(id, updates) {
+    const idx = habits.value.findIndex(h => h.id === id)
+    if (idx === -1) return null
+
+    const existing = habits.value[idx]
+    const merged = {
+      ...existing,
+      ...updates,
+      id: existing.id,
+      expeditionId: existing.expeditionId,
+      createdAt: existing.createdAt,
+      // Re-validate the mutable fields that have rules
+      name: (updates.name ?? existing.name).trim(),
+      description: (updates.description ?? existing.description ?? '').trim(),
+      completionsNeeded: Math.max(1, parseInt(updates.completionsNeeded ?? existing.completionsNeeded, 10) || 1),
+      icon: updates.icon || existing.icon || CATEGORIES[updates.category ?? existing.category].icon
+    }
+
+    habits.value[idx] = merged
+    return merged
+  }
+
   function removeHabit(id) {
     habits.value = habits.value.filter(h => h.id !== id)
   }
 
+  /**
+   * Used by binary habits (completionsNeeded === 1): flips between done and not-done.
+   * For multi-completion habits, treats the tap as a full reset (any count → 0).
+   * Multi-completion habits should normally use incrementCompletion instead.
+   */
   function toggleCompletion(habitId, date = todayISO()) {
     if (!logs.value[date]) logs.value[date] = {}
-    const current = logs.value[date][habitId]?.completed ?? false
+    const habit = habits.value.find(h => h.id === habitId)
+    const needed = habit?.completionsNeeded ?? 1
+    const current = logs.value[date][habitId]?.count ?? 0
+
+    const next = (needed === 1)
+      ? (current >= needed ? 0 : needed)
+      : 0
+
     logs.value[date] = {
       ...logs.value[date],
-      [habitId]: { ...(logs.value[date][habitId] || {}), completed: !current }
+      [habitId]: { ...(logs.value[date][habitId] || { count: 0 }), count: next }
+    }
+  }
+
+  /**
+   * Increments today's count by 1, capped at completionsNeeded so it stops at "complete".
+   * Used by the "+1" action on multi-completion habit cards.
+   */
+  function incrementCompletion(habitId, date = todayISO()) {
+    if (!logs.value[date]) logs.value[date] = {}
+    const habit = habits.value.find(h => h.id === habitId)
+    const needed = habit?.completionsNeeded ?? 1
+    const current = logs.value[date][habitId]?.count ?? 0
+    const next = Math.min(needed, current + 1)
+
+    logs.value[date] = {
+      ...logs.value[date],
+      [habitId]: { ...(logs.value[date][habitId] || { count: 0 }), count: next }
     }
   }
 
@@ -150,7 +261,7 @@ export const useHabitsStore = defineStore('habits', () => {
     if (!logs.value[date]) logs.value[date] = {}
     logs.value[date] = {
       ...logs.value[date],
-      [habitId]: { ...(logs.value[date][habitId] || { completed: false }), note }
+      [habitId]: { ...(logs.value[date][habitId] || { count: 0 }), note }
     }
   }
 
@@ -174,6 +285,6 @@ export const useHabitsStore = defineStore('habits', () => {
     habits, logs,
     activeHabits, todayHabits, todayCompletionRate,
     getLog, completionRate, averageCompletionForExpedition,
-    addHabit, removeHabit, toggleCompletion, setNote, carryHabitsForward
+    addHabit, removeHabit, updateHabit, toggleCompletion, incrementCompletion, setNote, carryHabitsForward
   }
 })
