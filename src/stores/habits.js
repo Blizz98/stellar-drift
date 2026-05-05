@@ -220,6 +220,35 @@ export const useHabitsStore = defineStore('habits', () => {
   }
 
   /**
+ * Returns yesterday's completion summary, but only counts habits that existed
+ * at the time. Returns null if no habits were configured yesterday — in that
+ * case the widget should hide entirely (e.g. day after voyage launch).
+ *
+ * Shape: { rate, completed, total, hasData, date }
+ */
+function yesterdaySummary() {
+  const yest = new Date()
+  yest.setDate(yest.getDate() - 1)
+  const yestISO = yest.toISOString().slice(0, 10)
+
+  const eligible = activeHabits.value.filter(h => h.createdAt <= yestISO)
+  if (eligible.length === 0) return null
+
+  const completed = eligible.filter(h => {
+    const count = logs.value[yestISO]?.[h.id]?.count ?? 0
+    return count >= (h.completionsNeeded ?? 1)
+  }).length
+
+  return {
+    rate: completed / eligible.length,
+    completed,
+    total: eligible.length,
+    hasData: true,
+    date: yestISO
+  }
+}
+
+  /**
    * Used by binary habits (completionsNeeded === 1): flips between done and not-done.
    * For multi-completion habits, treats the tap as a full reset (any count → 0).
    * Multi-completion habits should normally use incrementCompletion instead.
@@ -284,7 +313,7 @@ export const useHabitsStore = defineStore('habits', () => {
   return {
     habits, logs,
     activeHabits, todayHabits, todayCompletionRate,
-    getLog, completionRate, averageCompletionForExpedition,
-    addHabit, removeHabit, updateHabit, toggleCompletion, incrementCompletion, setNote, carryHabitsForward
+    getLog, completionRate, averageCompletionForExpedition, yesterdaySummary,
+    addHabit, updateHabit, removeHabit, toggleCompletion, incrementCompletion, setNote, carryHabitsForward
   }
 })

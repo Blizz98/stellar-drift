@@ -129,7 +129,7 @@ function durationLabel(exp) {
 .meta__label { color: var(--signal-low); font-size: 9px; }
 
 .archive__head { margin-bottom: var(--s-4); padding-bottom: var(--s-3); border-bottom: 1px solid var(--line); }
-.archive__title {
+.archive__title, .current__voyage-title {
   font-size: 16px;
   font-weight: 500;
   color: var(--signal);

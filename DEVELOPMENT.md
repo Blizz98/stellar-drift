@@ -658,8 +658,8 @@ The single biggest retention failure is users opening the app to four empty habi
  
 1. ✓ DONE **Guided first-launch flow.** Three screens before LaunchView for first-time users: philosophy in one line, tap-to-accept starter habits per category, auto-launch a 14-day Luna voyage. Reduces first-run decisions from many to one tap per screen. Should detect "no expeditions ever launched" and route there once.
 2. ✓ DONE **Pre-filled starter habits with one-tap acceptance.** Concrete suggestions per category (move 20 min, one focus session, read 20 min, in bed by 11). User taps to accept defaults; "customize" is secondary. Eliminates the four-empty-categories paralysis. Pairs with item 1.
-3. **Edit existing habits.** Currently you can add or remove but not edit. Without this, a typo or miscategorization forces decommission + recreation, which loses the habit's log history. Add an edit modal triggered from `HabitsView` row tap.
-4. **Multiple completions per day.** Some habits are 2× or 3× daily (brushing teeth, water intake). Add a `targetCount` field on Habit (default 1) and a count widget on `HabitCard` that increments toward the target. Completion is `count >= target`. Data layer change in `stores/habits.js`; `Habit` shape gets one new field.
+3. ✓ DONE **Edit existing habits.** Currently you can add or remove but not edit. Without this, a typo or miscategorization forces decommission + recreation, which loses the habit's log history. Add an edit modal triggered from `HabitsView` row tap.
+4. ✓ DONE **Multiple completions per day.** Some habits are 2× or 3× daily (brushing teeth, water intake). Add a `targetCount` field on Habit (default 1) and a count widget on `HabitCard` that increments toward the target. Completion is `count >= target`. Data layer change in `stores/habits.js`; `Habit` shape gets one new field.
 
 ### Tier 2 — build the daily-return loop
  
@@ -669,6 +669,7 @@ Once users get past day 0, the next failure is forgetting to return.
 6. **End-of-voyage debrief screen.** Three questions between Complete and Log: *what worked, what surprised you, what's the next voyage?* Stored on the archived expedition; surfaces in `LogView`. Makes voyages feel like events, not transactions. The user's own words are dramatically more emotionally valuable in the Log than stats alone.
 7. **"Yesterday" widget on the Bridge.** One-line acknowledgment of yesterday's state when the user opens the app. *"Yesterday: 3 of 4 systems nominal."* No streak framing — just a welcome back. Reads from existing logs.
 8. **Forgiveness language for missed days.** The Bridge is currently silent on missed days. Add explicit, kind framing for restarts after gaps. Wording matters more than the feature; write the copy before touching code. Example tone: *"Three days since last log. Voyages run on their own time. Pick up where you are."*
+
 ### Tier 3 — solve the voyage-2 problem
  
 Most users who finish voyage 1 don't start voyage 2. Three things help.
@@ -677,6 +678,7 @@ Most users who finish voyage 1 don't start voyage 2. Three things help.
 10. **Voyage-2 seeding during voyage 1.** Captain page shows *"Next voyage: where will you go?"* with soft preview options during the current voyage. Plants the seed before completion so the moment of "voyage complete!" isn't also the moment of "now what?"
 11. **"Shore leave" as a third end-state.** Add an explicit rest mode between voyages — no penalty, no XP loss, no guilt. Reframes the gap between voyages as *part of the practice* rather than abandonment of the app. Currently the only options at voyage end are Complete or Abandon, both of which feel terminal.
 12. **Sector check-in moments.** When `currentSector` advances (every 25% of the voyage), show a one-time modal prompting a short reflection. Don't spam — show once per sector boundary, even if user reloads. Stored as a per-sector reflection on the expedition.
+
 ### Tier 4 — quality-of-life polish
  
 Refinements that make the app *feel* better but don't move retention dramatically.
@@ -688,6 +690,7 @@ Refinements that make the app *feel* better but don't move retention dramaticall
 16. **Backfill habits for prior days** when adding a habit mid-voyage. Currently a habit added on day 5 has zero history — should optionally back-fill as "didn't track" (a third state, distinct from completed/missed).
 17. **Per-category completion summary on the Bridge.** Quick visual showing how today's habits are progressing within each of the four ship-system categories — at-a-glance overview without scrolling through the full list.
 18. **Polish habit cards on the Bridge.** Current row layout is functional but plain. Tighter spacing, better category color treatment, possibly grouped headers with progress dots.
+
 ### Tier 5 — content & worldbuilding
  
 Long-tail content that gives returning users something new to discover.
@@ -695,6 +698,7 @@ Long-tail content that gives returning users something new to discover.
 19. **Real astronomical distances.** Current distances are gameplay-tuned, not realistic. Real Mars is ~12 light-minutes from Earth; real Proxima is ~4 light-years. Reframe distances using real astronomical data, then either (a) compress timescales ("each voyage day = 1 light-month") or (b) lean into the fiction with FTL drives baked into ship velocities. Either way the catalog needs a pass with real numbers.
 20. **Expanded destination prose.** During voyage, the user should be able to read more about where they're going than what shows on the launch screen. Add a "destination dossier" view accessible from `ExpeditionView` — extended description, atmospheric details, what crews historically report. Pure flavor; deepens the immersion.
 21. **More ships and destinations.** Build out the catalog significantly — more rank gates, more variety per rank, more aspirational endpoints. Long-tenure users finishing the catalog at year 8 should find new content has been added since they started. The catalog files are pure data, so this is content work, not engineering.
+
 ### Tier 6 — shareability for organic acquisition
  
 Once retention is solid, optimize for discovery. Habit apps spread when users *want* to be seen using them.
@@ -710,6 +714,7 @@ When the app is real and you have users.
 26. **Push notifications via native APNs.** Capacitor + Apple Push Notification service. Required for reliable iOS notifications; PWA-only push is unreliable on iOS even at iOS 16.4+.
 27. **AI captain (LLM-backed companion).** Knows your history. Asks *"why did sector 2 wobble?"* Use the Anthropic API. Ship after core flows are loved — this is differentiation, not core. Avoid making it gimmicky; the captain should feel like a quiet first officer, not a chatbot.
 28. **Apple Health / Google Fit integration.** Auto-complete fitness habits from wearables. Requires Capacitor. Capacitor-community plugin exists for HealthKit; Android equivalent is more fragmented but workable.
+29. **Storage hygiene** Habits and logs from completed expeditions accumulate forever in localStorage (localStorage["sd:habits.list"])
 
 ### Tier 0 — measurement (only once you hav e users)
  

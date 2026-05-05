@@ -10,6 +10,7 @@ import PreflightChecklist from '@/components/PreflightChecklist.vue'
 import DailyBrief from '@/components/DailyBrief.vue'
 import AllSystemsNominal from '@/components/AllSystemsNominal.vue'
 import TelemetryFeed from '@/components/TelemetryFeed.vue'
+import YesterdayWidget from '@/components/YesterdayWidget.vue'
 
 const router = useRouter()
 const expedition = useExpeditionStore()
@@ -48,6 +49,8 @@ const orderedCategories = ['engineering', 'navigation', 'research', 'life-suppor
     <StatusReadout />
 
     <PreflightChecklist />
+
+    <YesterdayWidget />
 
     <AllSystemsNominal />
 
