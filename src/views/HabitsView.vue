@@ -4,13 +4,19 @@ import { useRouter } from 'vue-router'
 import { useExpeditionStore } from '@/stores/expedition'
 import { useHabitsStore, CATEGORIES } from '@/stores/habits'
 import EmptyState from '@/components/EmptyState.vue'
+import HabitForm from '@/components/HabitForm.vue'
 
 const router = useRouter()
 const expedition = useExpeditionStore()
 const habits = useHabitsStore()
 
-const draft = ref({ name: '', description: '', category: 'engineering', icon: '' })
-const showForm = ref(false)
+// Form state — null when closed, 'add' or a habit object when open
+const formMode = ref(null)  // null | 'add' | habitObject
+
+const isFormOpen = computed(() => formMode.value !== null)
+const editingHabit = computed(() =>
+  formMode.value && typeof formMode.value === 'object' ? formMode.value : null
+)
 
 const grouped = computed(() => {
   const out = { engineering: [], navigation: [], research: [], 'life-support': [] }
@@ -18,14 +24,30 @@ const grouped = computed(() => {
   return out
 })
 
-function submit() {
-  if (!draft.value.name.trim()) return
-  habits.addHabit({ ...draft.value, icon: draft.value.icon || null })
-  draft.value = { name: '', description: '', category: 'engineering', icon: '' }
-  showForm.value = false
+function openAdd() {
+  formMode.value = 'add'
 }
 
-function remove(id) {
+function openEdit(habit) {
+  formMode.value = habit
+}
+
+function closeForm() {
+  formMode.value = null
+}
+
+function handleSubmit(formData) {
+  if (editingHabit.value) {
+    habits.updateHabit(editingHabit.value.id, formData)
+  } else {
+    habits.addHabit(formData)
+  }
+  closeForm()
+}
+
+function remove(id, event) {
+  // Stop propagation so the row's edit-tap doesn't fire
+  event.stopPropagation()
   if (!confirm('Decommission this system? Past logs are kept.')) return
   habits.removeHabit(id)
 }
@@ -49,64 +71,21 @@ function remove(id) {
         <p class="label">Configuration</p>
         <h1 class="display habits__title">Ship Systems</h1>
         <p class="habits__lede">
-          Each system is a daily habit. Group them into the four ship categories so the
-          voyage stays balanced. Light scope is better than ambitious scope —
+          Each system is a daily habit. Tap a configured system to edit it.
           {{ habits.activeHabits.length }} of an ideal 4–8 systems configured.
         </p>
       </div>
-      <button class="btn btn-primary" @click="showForm = !showForm">
-        {{ showForm ? 'Cancel' : '+ New system' }}
+      <button class="btn btn-primary" @click="isFormOpen ? closeForm() : openAdd()">
+        {{ isFormOpen ? 'Cancel' : '+ New system' }}
       </button>
     </header>
 
-    <section v-if="showForm" class="form-card">
-      <header class="form-card__head">
-        <h2 class="form-card__title">Configure new system</h2>
-      </header>
-
-      <div class="form-grid">
-        <div class="field">
-          <label class="label">System name</label>
-          <input v-model="draft.name" class="input" placeholder="e.g. Strength training" />
-        </div>
-
-        <div class="field">
-          <label class="label">Icon (emoji, optional)</label>
-          <input v-model="draft.icon" class="input" placeholder="🏋️" maxlength="2" />
-        </div>
-
-        <div class="field field--full">
-          <label class="label">Brief</label>
-          <input v-model="draft.description" class="input" placeholder="What does this look like on a good day?" />
-        </div>
-
-        <div class="field field--full">
-          <label class="label">Category</label>
-          <div class="cats">
-            <button
-              v-for="(cat, key) in CATEGORIES"
-              :key="key"
-              type="button"
-              class="cat"
-              :class="{ 'cat--active': draft.category === key }"
-              :style="{ '--cat-color': cat.color }"
-              @click="draft.category = key"
-            >
-              <span class="cat__icon">{{ cat.icon }}</span>
-              <span class="cat__body">
-                <span class="cat__name">{{ cat.label }}</span>
-                <span class="cat__sub label">{{ cat.sublabel }}</span>
-              </span>
-            </button>
-          </div>
-        </div>
-      </div>
-
-      <footer class="form-card__foot">
-        <button class="btn btn-ghost" @click="showForm = false">Cancel</button>
-        <button class="btn btn-primary" @click="submit">Add system →</button>
-      </footer>
-    </section>
+    <HabitForm
+      v-if="isFormOpen"
+      :existing-habit="editingHabit"
+      @submit="handleSubmit"
+      @cancel="closeForm"
+    />
 
     <section
       v-for="(list, key) in grouped"
@@ -127,13 +106,27 @@ function remove(id) {
       </div>
 
       <div v-else class="cat-section__list">
-        <article v-for="h in list" :key="h.id" class="row">
+        <article
+          v-for="h in list"
+          :key="h.id"
+          class="row"
+          @click="openEdit(h)"
+          role="button"
+          tabindex="0"
+          @keydown.enter="openEdit(h)"
+          @keydown.space.prevent="openEdit(h)"
+        >
           <span class="row__icon">{{ h.icon }}</span>
           <div class="row__body">
             <h4 class="row__name">{{ h.name }}</h4>
-            <p v-if="h.description" class="row__desc">{{ h.description }}</p>
+            <p class="row__meta">
+              <span v-if="h.description" class="row__desc">{{ h.description }}</span>
+              <span v-if="h.completionsNeeded > 1" class="row__target mono">
+                {{ h.completionsNeeded }}× daily
+              </span>
+            </p>
           </div>
-          <button class="row__remove mono" @click="remove(h.id)" aria-label="Decommission">
+          <button class="row__remove mono" @click="remove(h.id, $event)" aria-label="Decommission">
             Decommission
           </button>
         </article>
@@ -157,49 +150,6 @@ function remove(id) {
 .habits__title { font-size: 44px; margin: 4px 0 var(--s-3); color: var(--signal); }
 .habits__lede { color: var(--signal-dim); max-width: 640px; line-height: 1.6; margin: 0; }
 
-/* — New system form — */
-.form-card {
-  padding: var(--s-5);
-  background: var(--bulkhead);
-  border: 1px solid var(--amber-deep);
-  border-radius: var(--radius-lg);
-  box-shadow: var(--glow-amber);
-}
-.form-card__title { font-size: 16px; margin: 0; color: var(--signal); font-weight: 500; }
-.form-card__head { margin-bottom: var(--s-4); }
-.form-card__foot { display: flex; justify-content: flex-end; gap: var(--s-2); margin-top: var(--s-4); }
-
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 200px;
-  gap: var(--s-3);
-}
-.field--full { grid-column: 1 / -1; }
-.field .label { display: block; margin-bottom: 6px; }
-
-.cats { display: grid; grid-template-columns: repeat(2, 1fr); gap: var(--s-2); }
-.cat {
-  display: flex;
-  align-items: center;
-  gap: var(--s-3);
-  padding: var(--s-3);
-  background: var(--hull);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  text-align: left;
-  transition: all var(--t-fast) var(--ease);
-}
-.cat:hover { background: var(--console); border-color: var(--line-hi); }
-.cat--active {
-  border-color: var(--cat-color);
-  background: var(--console);
-}
-.cat__icon { font-size: 18px; color: var(--cat-color); width: 24px; text-align: center; }
-.cat__body { display: flex; flex-direction: column; gap: 2px; }
-.cat__name { font-size: 13px; color: var(--signal); }
-.cat__sub  { font-size: 9px; }
-
-/* — Category section — */
 .cat-section { padding: var(--s-5) 0; }
 .cat-section__head {
   display: grid;
@@ -213,8 +163,7 @@ function remove(id) {
 .cat-section__icon {
   font-size: 22px;
   color: var(--cat-color);
-  width: 32px;
-  height: 32px;
+  width: 32px; height: 32px;
   display: grid;
   place-items: center;
   background: var(--hull);
@@ -256,10 +205,33 @@ function remove(id) {
   background: var(--console);
   border: 1px solid var(--line);
   border-radius: var(--radius);
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+  -webkit-tap-highlight-color: transparent;
 }
+.row:hover, .row:focus-visible {
+  background: var(--console-hi);
+  border-color: var(--line-hi);
+  outline: none;
+}
+.row:focus-visible {
+  border-color: var(--amber-deep);
+}
+
 .row__icon { font-size: 18px; }
 .row__name { font-size: 14px; margin: 0; color: var(--signal); }
-.row__desc { font-size: 12px; color: var(--signal-low); margin: 2px 0 0; }
+.row__meta {
+  display: flex;
+  gap: var(--s-3);
+  align-items: baseline;
+  margin: 2px 0 0;
+}
+.row__desc { font-size: 12px; color: var(--signal-low); }
+.row__target {
+  font-size: 10px;
+  color: var(--cat-color, var(--cyan));
+  letter-spacing: 0.04em;
+}
 .row__remove {
   font-size: 9px;
   letter-spacing: 0.14em;
@@ -274,7 +246,5 @@ function remove(id) {
 @media (max-width: 720px) {
   .habits__head { grid-template-columns: 1fr; }
   .habits__title { font-size: 32px; }
-  .form-grid { grid-template-columns: 1fr; }
-  .cats { grid-template-columns: 1fr; }
 }
 </style>
