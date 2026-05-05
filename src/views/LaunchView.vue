@@ -13,7 +13,7 @@ const expedition = useExpeditionStore()
 const captain = useCaptainStore()
 
 // ——— form state ———
-const selectedShipId = ref(null)
+const selectedShipId = ref('explorer')
 const selectedDestId = ref(null)
 const voyageName     = ref('')
 
