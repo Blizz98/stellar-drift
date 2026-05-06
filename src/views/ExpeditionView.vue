@@ -32,9 +32,8 @@ function handleComplete() {
 function handleAbandon() {
   if (!confirm('Abandon ship? The voyage will be archived as abandoned. This is fine — most voyages end before the destination.')) return
   const exp = expedition.current
-  const daysCompleted = expedition.daysElapsed
-  const avgRate = habits.averageCompletionForExpedition(exp.id, exp.startedAt, todayISO())
-  const xp = xpForAbandonment(daysCompleted, avgRate)
+  const daysElapsed = expedition.daysElapsed
+  const xp = xpForAbandonment(daysElapsed, exp.durationDays)
   expedition.abandonExpedition()
   captain.grantXP({
     amount: xp,
@@ -94,7 +93,6 @@ const sectorMessage = computed(() => {
       </header>
       <div class="actions__row">
         <button class="btn" @click="handleAbandon">◇ Abandon voyage</button>
-        <button class="btn btn-primary" @click="handleComplete">✓ Complete voyage</button>
       </div>
     </section>
   </div>
