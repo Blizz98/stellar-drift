@@ -7,6 +7,7 @@ import { useCaptainStore, xpForCompletion } from '@/stores/captain'
 import Chronometer from '@/components/Chronometer.vue'
 import LevelUpModal from '@/components/LevelUpModal.vue'
 import GuidedFirstLaunch from '@/components/GuidedFirstLaunch.vue'
+import DebriefModal from '@/components/DebriefModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -56,7 +57,7 @@ watch(
       voyageName: exp.name,
       voyageId: exp.id
     })
-    router.push('/log')
+    // Debrief modal will appear via pendingDebrief — no manual route push needed.
   },
   { immediate: true }
 )
@@ -113,6 +114,7 @@ watch(
 
     <LevelUpModal />
     <GuidedFirstLaunch />
+    <DebriefModal />
   </div>
 </template>
 

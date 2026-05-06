@@ -97,6 +97,25 @@ function durationLabel(exp) {
               <div><dt class="label">Concluded</dt><dd class="mono">{{ formatDate(exp.endedAt) }}</dd></div>
               <div><dt class="label">Duration</dt><dd class="mono">{{ durationLabel(exp) }}</dd></div>
             </dl>
+
+            <!-- Debrief reflections, if filed -->
+            <section v-if="exp.debrief" class="entry__debrief">
+              <header class="entry__debrief-head">
+                <span class="label">Captain's debrief</span>
+              </header>
+              <div v-if="exp.debrief.worked" class="entry__debrief-row">
+                <span class="entry__debrief-q label">What worked</span>
+                <p class="entry__debrief-a">{{ exp.debrief.worked }}</p>
+              </div>
+              <div v-if="exp.debrief.surprised" class="entry__debrief-row">
+                <span class="entry__debrief-q label">What surprised</span>
+                <p class="entry__debrief-a">{{ exp.debrief.surprised }}</p>
+              </div>
+              <div v-if="exp.debrief.nextVoyage" class="entry__debrief-row">
+                <span class="entry__debrief-q label">What's next</span>
+                <p class="entry__debrief-a">{{ exp.debrief.nextVoyage }}</p>
+              </div>
+            </section>
           </article>
         </li>
       </ol>
@@ -202,6 +221,38 @@ function durationLabel(exp) {
 .entry__data > div { display: flex; flex-direction: column; gap: 2px; }
 .entry__data dt { font-size: 9px; color: var(--signal-low); }
 .entry__data dd { margin: 0; font-size: 13px; color: var(--signal); }
+
+.entry__debrief {
+  margin-top: var(--s-4);
+  padding: var(--s-4);
+  background: var(--hull);
+  border-left: 2px solid var(--cyan-deep);
+  border-radius: var(--radius-sm);
+}
+.entry__debrief-head { margin-bottom: var(--s-3); }
+.entry__debrief-row {
+  display: grid;
+  grid-template-columns: 110px 1fr;
+  gap: var(--s-3);
+  margin-bottom: var(--s-2);
+}
+.entry__debrief-row:last-child { margin-bottom: 0; }
+.entry__debrief-q {
+  color: var(--cyan-deep);
+  font-size: 9px;
+  padding-top: 2px;
+}
+.entry__debrief-a {
+  margin: 0;
+  font-size: 13px;
+  color: var(--signal-dim);
+  line-height: 1.6;
+  font-style: italic;
+}
+
+@media (max-width: 720px) {
+  .entry__debrief-row { grid-template-columns: 1fr; gap: 4px; }
+}
 
 @media (max-width: 720px) {
   .meta { grid-template-columns: repeat(2, 1fr); }
