@@ -33,11 +33,13 @@ export const useExpeditionStore = defineStore('expedition', () => {
     completedRuns: 0,
     unlocks: ['explorer'] // ship classes unlocked across runs
   }))
+  const pendingDebrief = ref(loadJSON('expedition.pendingDebrief', null))
 
   // ——— persistence ———
   watch(current, v => saveJSON('expedition.current', v), { deep: true })
   watch(history, v => saveJSON('expedition.history', v), { deep: true })
   watch(meta,    v => saveJSON('expedition.meta',    v), { deep: true })
+  watch(pendingDebrief, v => saveJSON('expedition.pendingDebrief', v), { deep: true })
 
   // ——— getters ———
   const isActive = computed(() => current.value?.status === 'active')
@@ -91,6 +93,7 @@ export const useExpeditionStore = defineStore('expedition', () => {
     history.value = [ended, ...history.value]
     meta.value.completedRuns += 1
     current.value = null
+    pendingDebrief.value = { voyageId: ended.id, status: 'completed', at: Date.now() }
     return ended
   }
 
@@ -99,12 +102,39 @@ export const useExpeditionStore = defineStore('expedition', () => {
     const ended = { ...current.value, status: 'abandoned', endedAt: todayISO() }
     history.value = [ended, ...history.value]
     current.value = null
+    pendingDebrief.value = { voyageId: ended.id, status: 'abandoned', at: Date.now() }
     return ended
   }
 
+  /**
+   * Saves the debrief reflection onto the archived expedition entry.
+   * The pendingDebrief flag is cleared so the modal closes.
+   */
+  function fileDebrief({ voyageId, worked, surprised, nextVoyage, skipped = false }) {
+    const idx = history.value.findIndex(e => e.id === voyageId)
+    if (idx !== -1) {
+      history.value[idx] = {
+        ...history.value[idx],
+        debrief: skipped
+          ? null
+          : {
+              worked: (worked || '').trim(),
+              surprised: (surprised || '').trim(),
+              nextVoyage: (nextVoyage || '').trim(),
+              filedAt: new Date().toISOString().slice(0, 10)
+            }
+      }
+    }
+    pendingDebrief.value = null
+  }
+
+  function dismissDebrief() {
+    pendingDebrief.value = null
+  }
+
   return {
-    current, history, meta,
+    current, history, meta, pendingDebrief,
     isActive, daysElapsed, daysRemaining, progressPercent, currentSector,
-    launchExpedition, completeExpedition, abandonExpedition
+    launchExpedition, completeExpedition, abandonExpedition, fileDebrief, dismissDebrief
   }
 })

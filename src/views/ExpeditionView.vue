@@ -41,7 +41,7 @@ function handleAbandon() {
     voyageName: exp.name,
     voyageId: exp.id
   })
-  router.push('/launch')
+  // Debrief modal handles routing now.
 }
 
 const sectorMessage = computed(() => {
