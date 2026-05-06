@@ -44,20 +44,27 @@ function rankForXP(xp) {
 }
 
 /**
- * XP awarded for completing a voyage cleanly.
- *   base 100 + round(avgCompletionRate × durationDays × 2)
+ * XP awarded on auto-completion (voyage reached its planned end).
+ * Base 100 + completion-quality bonus.
  */
 export function xpForCompletion(durationDays, avgCompletionRate) {
   return 100 + Math.round(avgCompletionRate * durationDays * 2)
 }
 
 /**
- * XP awarded for abandoning a voyage. Smaller, but nonzero — abandoning
- * thoughtfully is itself a captain skill we want to reinforce, gently.
- *   round(avgCompletionRate × daysCompleted × 1)
+ * XP awarded on abandonment.
+ * Only fully-completed days count — the day you abandon on does not.
+ *
+ * Day 1 abandon (0 completed days):  0 XP
+ * Day 2 abandon (1 completed day):   round(100 × 1/N)
+ * Day N abandon (N-1 completed):     round(100 × (N-1)/N)
+ *
+ * No completion-quality bonus — abandon is about how far you got,
+ * not how well you did along the way.
  */
-export function xpForAbandonment(daysCompleted, avgCompletionRate) {
-  return Math.max(10, Math.round(avgCompletionRate * daysCompleted * 1))
+export function xpForAbandonment(daysElapsed, durationDays) {
+  const daysCompleted = Math.max(0, daysElapsed - 1)
+  return Math.round(100 * (daysCompleted / durationDays))
 }
 
 export const useCaptainStore = defineStore('captain', () => {

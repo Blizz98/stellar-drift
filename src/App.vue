@@ -1,13 +1,20 @@
 <script setup>
-import { computed } from 'vue'
-import { useRoute, RouterLink, RouterView } from 'vue-router'
+import { computed, watch } from 'vue'
+import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router'
 import { useExpeditionStore } from '@/stores/expedition'
+import { useHabitsStore } from '@/stores/habits'
+import { useCaptainStore, xpForCompletion } from '@/stores/captain'
 import Chronometer from '@/components/Chronometer.vue'
 import LevelUpModal from '@/components/LevelUpModal.vue'
 import GuidedFirstLaunch from '@/components/GuidedFirstLaunch.vue'
 
 const route = useRoute()
+const router = useRouter()
 const expedition = useExpeditionStore()
+const habits = useHabitsStore()
+const captain = useCaptainStore()
+
+const todayISO = () => new Date().toISOString().slice(0, 10)
 
 const navLinks = computed(() => {
   if (expedition.isActive) {
@@ -25,6 +32,34 @@ const navLinks = computed(() => {
     { to: '/log',     label: 'Log' }
   ]
 })
+
+/**
+ * Auto-complete a voyage when its duration is reached. Fires on app mount
+ * (handles users returning days after the voyage should have ended) and on
+ * any change to daysRemaining (handles the rare case of midnight tick-over
+ * while the app is open). Until the debrief screen ships, this routes to
+ * the Log; the debrief flow will replace that line.
+ */
+watch(
+  () => expedition.daysRemaining,
+  (remaining) => {
+    if (!expedition.isActive) return
+    if (remaining > 0) return
+
+    const exp = expedition.current
+    const avgRate = habits.averageCompletionForExpedition(exp.id, exp.startedAt, todayISO())
+    const xp = xpForCompletion(exp.durationDays, avgRate)
+    expedition.completeExpedition()
+    captain.grantXP({
+      amount: xp,
+      source: 'completion',
+      voyageName: exp.name,
+      voyageId: exp.id
+    })
+    router.push('/log')
+  },
+  { immediate: true }
+)
 </script>
 
 <template>
