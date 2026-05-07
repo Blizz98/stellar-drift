@@ -92,7 +92,12 @@ const orderedCategories = ['engineering', 'navigation', 'research', 'life-suppor
           </header>
 
           <div class="system-group__list">
-            <HabitCard v-for="h in grouped[cat]" :key="h.id" :habit="h" />
+            <HabitCard
+              v-for="(h, idx) in grouped[cat]"
+              :key="h.id"
+              :habit="h"
+              :index="idx + 1"
+            />
           </div>
         </div>
       </div>

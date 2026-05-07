@@ -76,8 +76,15 @@ export const useCaptainStore = defineStore('captain', () => {
   const state = ref(loadJSON('captain.state', {
     name: 'Captain',
     xp: 0,
-    voyageGrants: []   // history of XP grants for the captain log: { date, source, amount, voyageName }
+    voyageGrants: [],
+    personalLog: ''   // ← captain's free-form personal reflection
   }))
+
+  // Backfill personalLog for users on the old shape
+  if (state.value.personalLog === undefined) {
+    state.value.personalLog = ''
+    saveJSON('captain.state', state.value)
+  }
 
   // Pending level-up celebration: when present, BridgeView shows the modal
   // and the user can dismiss it. Avoids showing it on a stale page reload.
@@ -145,11 +152,14 @@ export const useCaptainStore = defineStore('captain', () => {
   function setName(newName) {
     state.value.name = newName.trim() || 'Captain'
   }
+  function setPersonalLog(text) {
+    state.value.personalLog = text || ''
+  }
 
   return {
     state, pendingLevelUp,
     currentRank, nextRank, xpIntoRank, xpForNextRank, progressToNext, isMaxRank,
-    grantXP, clearPendingLevelUp, setName,
+    grantXP, clearPendingLevelUp, setName, setPersonalLog,
     MAX_RANK
   }
 })

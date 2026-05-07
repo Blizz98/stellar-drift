@@ -310,10 +310,76 @@ function yesterdaySummary() {
     habits.value = [...habits.value, ...carryover]
   }
 
+  /**
+   * Per-habit completion history across a voyage. Returns an array of day entries
+   * from voyage start through today (or through endedAt for archived voyages).
+   *
+   * Each entry: { day, dateISO, isToday, isPast, isFuture, completion }
+   *   - completion is 0..1 for past days, null for today/future
+   *   - For multi-completion habits, completion = count / completionsNeeded (capped at 1)
+   *   - For binary habits, completion is 0 or 1
+   *
+   * Used by the Systems view to render per-habit voyage strips.
+   */
+  function habitVoyageStrip(habit, voyageStartedAt, voyageEndedAt = null) {
+    const start = new Date(voyageStartedAt + 'T00:00:00')
+    const today = new Date(todayISO() + 'T00:00:00')
+    const end = voyageEndedAt
+      ? new Date(voyageEndedAt + 'T00:00:00')
+      : today
+    const habitCreated = new Date(habit.createdAt + 'T00:00:00')
+
+    // Voyage spans from start to end (or today, whichever is earlier for active voyages)
+    const stripEnd = today < end ? today : end
+    const totalDays = Math.max(1, Math.floor((end - start) / 86_400_000) + 1)
+    const todayDayNum = Math.floor((today - start) / 86_400_000) + 1
+
+    return Array.from({ length: totalDays }, (_, i) => {
+      const date = new Date(start)
+      date.setDate(date.getDate() + i)
+      const dayNum = i + 1
+      const dateISO = date.toISOString().slice(0, 10)
+      const isToday = dayNum === todayDayNum
+      const isPast = dayNum < todayDayNum
+      const isFuture = dayNum > todayDayNum
+      const habitExisted = date >= habitCreated
+
+      let completion = null
+      if (habitExisted && (isPast || isToday)) {
+        const count = logs.value[dateISO]?.[habit.id]?.count ?? 0
+        const needed = habit.completionsNeeded ?? 1
+        completion = Math.min(1, count / needed)
+      }
+
+      return {
+        day: dayNum,
+        dateISO,
+        isToday,
+        isPast,
+        isFuture,
+        habitExisted,
+        completion
+      }
+    })
+  }
+
+  /**
+   * Per-habit completion percentage across past days only (excluding today).
+   * Returns 0..1 or null if no eligible past days exist.
+   */
+  function habitPastAverage(habit, voyageStartedAt) {
+    const strip = habitVoyageStrip(habit, voyageStartedAt)
+    const past = strip.filter(d => d.isPast && d.habitExisted)
+    if (past.length === 0) return null
+    const sum = past.reduce((s, d) => s + (d.completion ?? 0), 0)
+    return sum / past.length
+  }
+
   return {
     habits, logs,
     activeHabits, todayHabits, todayCompletionRate,
     getLog, completionRate, averageCompletionForExpedition, yesterdaySummary,
+    habitVoyageStrip, habitPastAverage,
     addHabit, updateHabit, removeHabit, toggleCompletion, incrementCompletion, setNote, carryHabitsForward
   }
 })
