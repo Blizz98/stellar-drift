@@ -5,14 +5,14 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useHabitsStore, CATEGORIES } from '@/stores/habits'
 import EmptyState from '@/components/EmptyState.vue'
 import HabitForm from '@/components/HabitForm.vue'
+import SystemRow from '@/components/SystemRow.vue'
 
 const router = useRouter()
 const expedition = useExpeditionStore()
 const habits = useHabitsStore()
 
 // Form state — null when closed, 'add' or a habit object when open
-const formMode = ref(null)  // null | 'add' | habitObject
-
+const formMode = ref(null)
 const isFormOpen = computed(() => formMode.value !== null)
 const editingHabit = computed(() =>
   formMode.value && typeof formMode.value === 'object' ? formMode.value : null
@@ -24,17 +24,26 @@ const grouped = computed(() => {
   return out
 })
 
-function openAdd() {
-  formMode.value = 'add'
+// Per-category aggregate: average of past-averages of habits in that category
+function categoryAverage(catKey) {
+  if (!expedition.current) return null
+  const habitsInCat = grouped.value[catKey]
+  if (habitsInCat.length === 0) return null
+  const averages = habitsInCat
+    .map(h => habits.habitPastAverage(h, expedition.current.startedAt))
+    .filter(a => a !== null)
+  if (averages.length === 0) return null
+  return averages.reduce((s, a) => s + a, 0) / averages.length
 }
 
-function openEdit(habit) {
-  formMode.value = habit
+function categoryAveragePct(catKey) {
+  const avg = categoryAverage(catKey)
+  return avg === null ? null : Math.round(avg * 100)
 }
 
-function closeForm() {
-  formMode.value = null
-}
+function openAdd()             { formMode.value = 'add' }
+function openEdit(habit)       { formMode.value = habit }
+function closeForm()           { formMode.value = null }
 
 function handleSubmit(formData) {
   if (editingHabit.value) {
@@ -45,10 +54,7 @@ function handleSubmit(formData) {
   closeForm()
 }
 
-function remove(id, event) {
-  // Stop propagation so the row's edit-tap doesn't fire
-  event.stopPropagation()
-  if (!confirm('Decommission this system? Past logs are kept.')) return
+function handleRemove(id) {
   habits.removeHabit(id)
 }
 </script>
@@ -65,21 +71,40 @@ function remove(id, event) {
     </EmptyState>
   </div>
 
-  <div v-else class="habits">
-    <header class="habits__head">
+  <div v-else class="systems-view">
+    <!-- Header -->
+    <header class="sv-head">
       <div>
-        <p class="label">Configuration</p>
-        <h1 class="display habits__title">Ship Systems</h1>
-        <p class="habits__lede">
-          Each system is a daily habit. Tap a configured system to edit it.
-          {{ habits.activeHabits.length }} of an ideal 4–8 systems configured.
+        <p class="label sv-head__kicker">Configuration</p>
+        <h1 class="display sv-head__title">Ship Systems</h1>
+        <p class="sv-head__lede">
+          Each system is a daily habit. Tap a system to reconfigure it. Hold the
+          decommission button to remove. {{ habits.activeHabits.length }} of an
+          ideal 4–8 systems active.
         </p>
       </div>
-      <button class="btn btn-primary" @click="isFormOpen ? closeForm() : openAdd()">
+      <button class="btn btn-primary sv-head__add" @click="isFormOpen ? closeForm() : openAdd()">
         {{ isFormOpen ? 'Cancel' : '+ New system' }}
       </button>
     </header>
 
+    <!-- Legend strip — explains the visual language -->
+    <aside class="legend mono">
+      <span class="legend__item">
+        <span class="legend__swatch legend__swatch--past" /> COMPLETED DAY
+      </span>
+      <span class="legend__item">
+        <span class="legend__swatch legend__swatch--today" /> TODAY
+      </span>
+      <span class="legend__item">
+        <span class="legend__swatch legend__swatch--future" /> AHEAD
+      </span>
+      <span class="legend__item">
+        <span class="legend__swatch legend__swatch--missing" /> BEFORE SYS
+      </span>
+    </aside>
+
+    <!-- Form (when open) -->
     <HabitForm
       v-if="isFormOpen"
       :existing-habit="editingHabit"
@@ -87,49 +112,40 @@ function remove(id, event) {
       @cancel="closeForm"
     />
 
+    <!-- Per-category sections -->
     <section
       v-for="(list, key) in grouped"
       :key="key"
-      class="cat-section"
+      class="cat"
+      :style="{ '--cat-color': CATEGORIES[key].color }"
     >
-      <header class="cat-section__head" :style="{ '--cat-color': CATEGORIES[key].color }">
-        <span class="cat-section__icon">{{ CATEGORIES[key].icon }}</span>
-        <div>
-          <h3 class="cat-section__name">{{ CATEGORIES[key].label }}</h3>
-          <p class="cat-section__desc">{{ CATEGORIES[key].description }}</p>
+      <header class="cat__head">
+        <span class="cat__icon">{{ CATEGORIES[key].icon }}</span>
+        <div class="cat__head-text">
+          <h3 class="cat__name">{{ CATEGORIES[key].label }}</h3>
+          <p class="cat__sub">{{ CATEGORIES[key].description }}</p>
         </div>
-        <span class="cat-section__count mono">{{ list.length }}</span>
+        <div class="cat__agg">
+          <span class="cat__count mono">{{ list.length }} {{ list.length === 1 ? 'SYS' : 'SYS' }}</span>
+          <span v-if="categoryAveragePct(key) !== null" class="cat__avg mono">
+            {{ categoryAveragePct(key) }}% AVG
+          </span>
+        </div>
       </header>
 
-      <div v-if="list.length === 0" class="cat-section__empty mono">
-        No systems configured in this category.
+      <div v-if="list.length === 0" class="cat__empty mono">
+        ◇ NO SYSTEMS CONFIGURED IN THIS CATEGORY
       </div>
 
-      <div v-else class="cat-section__list">
-        <article
-          v-for="h in list"
+      <div v-else class="cat__list">
+        <SystemRow
+          v-for="(h, idx) in list"
           :key="h.id"
-          class="row"
-          @click="openEdit(h)"
-          role="button"
-          tabindex="0"
-          @keydown.enter="openEdit(h)"
-          @keydown.space.prevent="openEdit(h)"
-        >
-          <span class="row__icon">{{ h.icon }}</span>
-          <div class="row__body">
-            <h4 class="row__name">{{ h.name }}</h4>
-            <p class="row__meta">
-              <span v-if="h.description" class="row__desc">{{ h.description }}</span>
-              <span v-if="h.completionsNeeded > 1" class="row__target mono">
-                {{ h.completionsNeeded }}× daily
-              </span>
-            </p>
-          </div>
-          <button class="row__remove mono" @click="remove(h.id, $event)" aria-label="Decommission">
-            Decommission
-          </button>
-        </article>
+          :habit="h"
+          :index="idx + 1"
+          @edit="openEdit"
+          @remove="handleRemove"
+        />
       </div>
     </section>
   </div>
@@ -137,9 +153,15 @@ function remove(id, event) {
 
 <style scoped>
 .empty-wrap { padding-top: var(--s-7); }
-.habits { display: flex; flex-direction: column; gap: var(--s-6); }
 
-.habits__head {
+.systems-view {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-6);
+}
+
+/* — Header — */
+.sv-head {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: var(--s-5);
@@ -147,104 +169,145 @@ function remove(id, event) {
   padding-bottom: var(--s-5);
   border-bottom: 1px solid var(--line);
 }
-.habits__title { font-size: 44px; margin: 4px 0 var(--s-3); color: var(--signal); }
-.habits__lede { color: var(--signal-dim); max-width: 640px; line-height: 1.6; margin: 0; }
+.sv-head__kicker { color: var(--amber-deep); }
+.sv-head__title {
+  font-size: 44px;
+  margin: 4px 0 var(--s-3);
+  color: var(--signal);
+  line-height: 1;
+}
+.sv-head__lede {
+  color: var(--signal-dim);
+  max-width: 640px;
+  line-height: 1.6;
+  margin: 0;
+  font-size: 14px;
+}
 
-.cat-section { padding: var(--s-5) 0; }
-.cat-section__head {
+/* — Legend — */
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--s-4);
+  padding: var(--s-3) var(--s-4);
+  background: var(--hull);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--cyan-deep);
+  border-radius: var(--radius);
+  font-size: 9px;
+  letter-spacing: 0.12em;
+  color: var(--signal-low);
+}
+.legend__item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.legend__swatch {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  display: inline-block;
+}
+.legend__swatch--past    { background: var(--amber); opacity: 0.8; }
+.legend__swatch--today   { background: var(--cyan); box-shadow: 0 0 4px var(--cyan); }
+.legend__swatch--future  { background: var(--bulkhead); border: 1px solid var(--line); }
+.legend__swatch--missing { background: var(--bulkhead); opacity: 0.4; }
+
+/* — Categories — */
+.cat {
+  display: flex;
+  flex-direction: column;
+  gap: var(--s-3);
+}
+
+.cat__head {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--s-3);
-  padding-bottom: var(--s-3);
-  border-bottom: 1px solid var(--line);
-  margin-bottom: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  background: var(--hull);
+  border: 1px solid var(--line);
+  border-left: 2px solid var(--cat-color);
+  border-radius: var(--radius);
 }
-.cat-section__icon {
-  font-size: 22px;
+.cat__icon {
+  font-size: 20px;
   color: var(--cat-color);
-  width: 32px; height: 32px;
+  width: 32px;
+  height: 32px;
   display: grid;
   place-items: center;
-  background: var(--hull);
+  background: var(--bulkhead);
   border-radius: var(--radius-sm);
 }
-.cat-section__name {
-  font-size: 16px;
-  color: var(--signal);
+.cat__head-text { min-width: 0; }
+.cat__name {
+  font-size: 14px;
   margin: 0;
+  color: var(--signal);
   font-weight: 500;
+  letter-spacing: 0.02em;
 }
-.cat-section__desc { font-size: 12px; color: var(--signal-low); margin: 2px 0 0; }
-.cat-section__count {
-  font-size: 13px;
+.cat__sub {
+  font-size: 11px;
+  color: var(--signal-low);
+  margin: 2px 0 0;
+  line-height: 1.4;
+}
+
+.cat__agg {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+.cat__count {
+  font-size: 9px;
+  letter-spacing: 0.14em;
   color: var(--cat-color);
-  padding: 2px 10px;
+  padding: 3px 8px;
+  background: var(--bulkhead);
   border: 1px solid var(--line);
   border-radius: 999px;
 }
+.cat__avg {
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  color: var(--signal-low);
+}
 
-.cat-section__empty {
+.cat__empty {
   padding: var(--s-4);
   text-align: center;
   color: var(--signal-low);
-  font-size: 11px;
+  font-size: 9px;
+  letter-spacing: 0.14em;
   background: var(--hull);
   border: 1px dashed var(--line);
   border-radius: var(--radius);
 }
 
-.cat-section__list { display: flex; flex-direction: column; gap: var(--s-2); }
-
-.row {
+.cat__list {
   display: grid;
-  grid-template-columns: auto 1fr auto;
+  grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
   gap: var(--s-3);
-  align-items: center;
-  padding: var(--s-3) var(--s-4);
-  background: var(--console);
-  border: 1px solid var(--line);
-  border-radius: var(--radius);
-  cursor: pointer;
-  transition: all var(--t-fast) var(--ease);
-  -webkit-tap-highlight-color: transparent;
 }
-.row:hover, .row:focus-visible {
-  background: var(--console-hi);
-  border-color: var(--line-hi);
-  outline: none;
-}
-.row:focus-visible {
-  border-color: var(--amber-deep);
-}
-
-.row__icon { font-size: 18px; }
-.row__name { font-size: 14px; margin: 0; color: var(--signal); }
-.row__meta {
-  display: flex;
-  gap: var(--s-3);
-  align-items: baseline;
-  margin: 2px 0 0;
-}
-.row__desc { font-size: 12px; color: var(--signal-low); }
-.row__target {
-  font-size: 10px;
-  color: var(--cat-color, var(--cyan));
-  letter-spacing: 0.04em;
-}
-.row__remove {
-  font-size: 9px;
-  letter-spacing: 0.14em;
-  color: var(--signal-low);
-  text-transform: uppercase;
-  padding: 6px 10px;
-  border-radius: 4px;
-  transition: all var(--t-fast) var(--ease);
-}
-.row__remove:hover { color: var(--thrust); background: var(--hull); }
 
 @media (max-width: 720px) {
-  .habits__head { grid-template-columns: 1fr; }
-  .habits__title { font-size: 32px; }
+  .sv-head { grid-template-columns: 1fr; }
+  .sv-head__title { font-size: 32px; }
+  .sv-head__add { justify-self: stretch; }
+  .legend { gap: var(--s-3); }
+  .cat__head { grid-template-columns: auto 1fr; gap: var(--s-2); }
+  .cat__agg {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    justify-content: flex-end;
+    padding-top: var(--s-2);
+    border-top: 1px dashed var(--line);
+  }
+  .cat__list { grid-template-columns: 1fr; }
 }
 </style>

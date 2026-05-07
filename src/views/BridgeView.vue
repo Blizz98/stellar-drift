@@ -92,7 +92,12 @@ const orderedCategories = ['engineering', 'navigation', 'research', 'life-suppor
           </header>
 
           <div class="system-group__list">
-            <HabitCard v-for="h in grouped[cat]" :key="h.id" :habit="h" />
+            <HabitCard
+              v-for="(h, idx) in grouped[cat]"
+              :key="h.id"
+              :habit="h"
+              :index="idx + 1"
+            />
           </div>
         </div>
       </div>
@@ -145,7 +150,6 @@ const orderedCategories = ['engineering', 'navigation', 'research', 'life-suppor
   gap: var(--s-3);
   margin-bottom: var(--s-3);
   padding-bottom: var(--s-3);
-  border-bottom: 1px solid var(--line);
 }
 .system-group__icon {
   font-size: 18px;
@@ -167,6 +171,8 @@ const orderedCategories = ['engineering', 'navigation', 'research', 'life-suppor
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: var(--s-3);
+  border-bottom: 1px solid var(--line);
+  padding-bottom: var(--s-6);
 }
 
 @media (max-width: 720px) {

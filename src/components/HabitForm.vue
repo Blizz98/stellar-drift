@@ -13,6 +13,8 @@
 
 import { ref, computed, watch, nextTick } from 'vue'
 import { CATEGORIES } from '@/stores/habits'
+import { iconById } from '@/data/icons'
+import IconPicker from '@/components/IconPicker.vue'
 
 const props = defineProps({
   existingHabit: { type: Object, default: null }
@@ -21,6 +23,9 @@ const props = defineProps({
 const emit = defineEmits(['submit', 'cancel'])
 
 const isEdit = computed(() => !!props.existingHabit)
+
+const showIconPicker = ref(false)
+const selectedIcon = computed(() => iconById(draft.value.icon))
 
 // ——— Form state ———
 const draft = ref(makeDraft(props.existingHabit))
@@ -92,6 +97,8 @@ function cancel() {
 </script>
 
 <template>
+  <Transition name="overlay">
+    <div class="overlay">
   <section class="form-card">
     <header class="form-card__head">
       <h2 class="form-card__title">{{ isEdit ? 'Edit system' : 'Configure new system' }}</h2>
@@ -105,9 +112,28 @@ function cancel() {
       </div>
 
       <div class="field">
-        <label class="label">Icon (emoji, optional)</label>
-        <input v-model="draft.icon" class="input" placeholder="🏋️" maxlength="2" />
+        <label class="label">Instrument icon</label>
+        <button type="button" class="icon-trigger" @click="showIconPicker = true">
+          <span class="icon-trigger__icon">
+            <svg v-if="selectedIcon" viewBox="0 0 24 24" width="22" height="22" fill="none">
+              <path :d="selectedIcon.path" stroke="currentColor" stroke-width="1.6"
+                    stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+            <span v-else class="icon-trigger__placeholder mono">--</span>
+          </span>
+          <span class="icon-trigger__label">
+            {{ selectedIcon ? selectedIcon.label : 'Select instrument' }}
+          </span>
+          <span class="icon-trigger__caret mono">◇</span>
+        </button>
       </div>
+
+      <!-- Add at the bottom of the template, after the closing </section> tag of form-card -->
+      <IconPicker
+        v-if="showIconPicker"
+        v-model="draft.icon"
+        @close="showIconPicker = false"
+      />
 
       <div class="field field--full">
         <label class="label">Brief</label>
@@ -187,9 +213,22 @@ function cancel() {
       </button>
     </footer>
   </section>
+  </div>
+  </Transition>
 </template>
 
 <style scoped>
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 9 !important;
+  background: rgba(6, 8, 15, 0.88);
+  backdrop-filter: blur(10px);
+  display: grid;
+  place-items: center;
+  padding: var(--s-5);
+  overflow-y: auto;
+}
 .form-card {
   padding: var(--s-5);
   background: var(--bulkhead);
@@ -202,6 +241,7 @@ function cancel() {
   bottom: 20px;
   height: 75%;
   overflow: scroll;
+  z-index:10;
 }
 .form-card__title { font-size: 16px; margin: 0; color: var(--signal); font-weight: 500; }
 .form-card__head { 
@@ -314,6 +354,46 @@ function cancel() {
   color: var(--cyan-deep);
   font-size: 10px;
   letter-spacing: 0.12em;
+}
+
+.icon-trigger {
+  display: grid;
+  grid-template-columns: 36px 1fr auto;
+  gap: var(--s-3);
+  align-items: center;
+  padding: var(--s-3) var(--s-4);
+  background: var(--hull);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  text-align: left;
+  width: 100%;
+  cursor: pointer;
+  transition: all var(--t-fast) var(--ease);
+}
+.icon-trigger:hover {
+  background: var(--console);
+  border-color: var(--line-hi);
+}
+.icon-trigger__icon {
+  width: 36px; height: 36px;
+  display: grid;
+  place-items: center;
+  background: var(--bulkhead);
+  border: 1px solid var(--line);
+  border-radius: var(--radius-sm);
+  color: var(--amber);
+}
+.icon-trigger__placeholder {
+  color: var(--signal-low);
+  font-size: 14px;
+}
+.icon-trigger__label {
+  font-size: 13px;
+  color: var(--signal);
+}
+.icon-trigger__caret {
+  font-size: 12px;
+  color: var(--signal-low);
 }
 
 /* Reveal transition */
