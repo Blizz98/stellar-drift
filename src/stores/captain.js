@@ -23,13 +23,17 @@ import { loadJSON, saveJSON } from '@/composables/usePersistence'
 
 export const RANKS = [
   { rank: 1, name: 'Cadet',          minXP:     0 },
-  { rank: 2, name: 'Ensign',         minXP:   800 },
-  { rank: 3, name: 'Lieutenant',     minXP:  1800 },
-  { rank: 4, name: 'Commander',      minXP:  3200 },
-  { rank: 5, name: 'Captain',        minXP:  5000 },
-  { rank: 6, name: 'Senior Captain', minXP:  7200 },
-  { rank: 7, name: 'Fleet Captain',  minXP:  9800 },
-  { rank: 8, name: 'Admiral',        minXP: 12800 }
+  { rank: 2, name: 'Ensign',         minXP:   400 },
+  { rank: 3, name: 'Lieutenant',     minXP:  800 },
+  { rank: 4, name: 'Commander',      minXP:  1400 },
+  { rank: 5, name: 'Captain',        minXP:  2200 },
+  { rank: 6, name: 'Senior Captain', minXP:  3300 },
+  { rank: 7, name: 'Fleet Captain',  minXP:  4600 },
+  { rank: 8, name: 'Commodore',        minXP: 6100 },
+  { rank: 9, name: 'Rear Admiral',        minXP: 7500 },
+  { rank: 10, name: 'Vice Admiral',        minXP: 9500 },
+  { rank: 11, name: 'Admiral',        minXP: 11500 },
+  { rank: 12, name: 'Grand Admiral',        minXP: 13500 }
 ]
 
 const MAX_RANK = RANKS.length

@@ -122,14 +122,13 @@ function handleClick() {
 </template>
 
 <style scoped>
-/* ... keep your existing scoped styles unchanged ... */
 .habit {
   display: grid;
   grid-template-columns: auto 1fr auto;
   align-items: center;
   gap: var(--s-4);
   padding: var(--s-4) var(--s-5);
-  background: var(--console);
+  background: linear-gradient(135deg, var(--bulkhead) 0%, var(--hull) 100%);
   border: 1px solid var(--line);
   border-radius: var(--radius);
   text-align: left;
