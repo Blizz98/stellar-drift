@@ -60,15 +60,21 @@ export const useExpeditionStore = defineStore('expedition', () => {
   })
 
   /**
-   * Roguelike "sectors": chunks of the voyage with milestone moments.
-   * v1 keeps it simple — 4 fixed sectors per expedition regardless of length.
-   * Each sector ends with a check-in moment for reflection.
+   * Roguelike "sectors": 4 chunks of the voyage with milestone moments.
+   * Each sector spans floor(s * size) to floor((s+1) * size) - 1 in zero-indexed days.
+   * This matches the day-cell mapping in VoyageMapMobile/StarMap so the "current sector"
+   * label always agrees with which sector the today-day-cell visually falls in.
    */
   const currentSector = computed(() => {
     if (!current.value) return 0
     const total = current.value.durationDays
     const sectorSize = total / 4
-    return Math.min(4, Math.floor((daysElapsed.value - 1) / sectorSize) + 1)
+    const dayIdx = daysElapsed.value - 1   // zero-indexed
+    for (let s = 0; s < 4; s++) {
+      const toIdx = Math.floor((s + 1) * sectorSize)
+      if (dayIdx < toIdx) return s + 1
+    }
+    return 4   // safety; final day
   })
 
   // ——— actions ———
