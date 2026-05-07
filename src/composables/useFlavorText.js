@@ -20,15 +20,30 @@ function pickFrom(arr, seed) {
   return arr[hash(seed) % arr.length]
 }
 
+/**
+ * Greatest common divisor — used to ensure stride is coprime with arr.length,
+ * which guarantees the stride visits every index exactly once before cycling.
+ */
+function gcd(a, b) {
+  while (b) { [a, b] = [b, a % b] }
+  return a
+}
+
 function pickN(arr, n, seed) {
-  // simple deterministic shuffle: pick by stepping through with a coprime stride
   if (arr.length <= n) return [...arr]
-  const stride = (hash(seed + ':stride') % (arr.length - 1)) + 1
+
+  // Find a stride that's coprime with arr.length. Start from the hashed value,
+  // increment until we find one. Guaranteed to terminate fast — at minimum,
+  // stride=1 is always coprime with anything.
+  let stride = (hash(seed + ':stride') % (arr.length - 1)) + 1
+  while (gcd(stride, arr.length) !== 1) {
+    stride = (stride % (arr.length - 1)) + 1
+  }
+
   let idx = hash(seed) % arr.length
   const out = []
-  const seen = new Set()
-  while (out.length < n && seen.size < arr.length) {
-    if (!seen.has(idx)) { out.push(arr[idx]); seen.add(idx) }
+  for (let safety = 0; safety < arr.length && out.length < n; safety++) {
+    out.push(arr[idx])
     idx = (idx + stride) % arr.length
   }
   return out
