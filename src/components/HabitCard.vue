@@ -19,6 +19,7 @@ const habits = useHabitsStore()
 const log = computed(() => habits.getLog(props.date, props.habit.id))
 const isComplete = computed(() => log.value.completed)
 const cat = computed(() => CATEGORIES[props.habit.category])
+const isCarried = computed(() => Boolean(props.habit.carriedFrom))
 
 const needed = computed(() => {
   const n = parseInt(props.habit.completionsNeeded, 10)
@@ -113,6 +114,7 @@ function handleClick() {
     <header class="console__head">
       <span class="console__sysid mono">{{ sysId }}</span>
       <span class="console__sep mono">/</span>
+      <span v-if="isCarried" class="console__carried mono" title="Continued from last voyage">↻ CONT</span>
       <span class="console__status mono">{{ status.label }}</span>
       <span class="console__dot" :class="`console__dot--${status.code}`" aria-hidden="true" />
     </header>
@@ -366,6 +368,11 @@ function handleClick() {
 .console__pip--filled {
   background: var(--cat-color);
   box-shadow: 0 0 5px var(--cat-color);
+}
+.console__carried {
+  color: var(--cyan-deep);
+  letter-spacing: 0.14em;
+  margin-right: 4px;
 }
 
 /* — Multi fraction — */

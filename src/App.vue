@@ -403,8 +403,8 @@ watch(
   }
 
   .navlink {
-    min-width: 52px;
-    padding: 6px 10px;
+    min-width: 60px;
+    padding: 8px 12px;
   }
   .navlink__label { font-size: 10px; }
 

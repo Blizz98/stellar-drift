@@ -674,7 +674,7 @@ Once users get past day 0, the next failure is forgetting to return.
  
 Most users who finish voyage 1 don't start voyage 2. Three things help.
  
-9. **Smart carry-forward at launch.** When launching voyage 2+, offer last voyage's habits with one-tap "keep these" — but more importantly, suggest *changes* based on what happened: drop or modify habits below 30% completion, propose a stronger version of any habit that hit 100%. The data hook (`carryHabitsForward`) exists in `stores/habits.js`; this is UI + suggestion logic on top.
+9. ✓ DONE **Smart carry-forward at launch.** When launching voyage 2+, offer last voyage's habits with one-tap "keep these" — but more importantly, suggest *changes* based on what happened: drop or modify habits below 30% completion, propose a stronger version of any habit that hit 100%. The data hook (`carryHabitsForward`) exists in `stores/habits.js`; this is UI + suggestion logic on top.
 10. **Voyage-2 seeding during voyage 1.** Captain page shows *"Next voyage: where will you go?"* with soft preview options during the current voyage. Plants the seed before completion so the moment of "voyage complete!" isn't also the moment of "now what?"
 11. **"Shore leave" as a third end-state.** Add an explicit rest mode between voyages — no penalty, no XP loss, no guilt. Reframes the gap between voyages as *part of the practice* rather than abandonment of the app. Currently the only options at voyage end are Complete or Abandon, both of which feel terminal.
 12. **Sector check-in moments.** When `currentSector` advances (every 25% of the voyage), show a one-time modal prompting a short reflection. Don't spam — show once per sector boundary, even if user reloads. Stored as a per-sector reflection on the expedition.
