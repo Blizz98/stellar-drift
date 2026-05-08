@@ -7,6 +7,8 @@ const routes = [
   { path: '/captain',    name: 'captain',    component: () => import('@/views/CaptainView.vue') },
   { path: '/log',        name: 'log',        component: () => import('@/views/LogView.vue') },
   { path: '/launch',     name: 'launch',     component: () => import('@/views/LaunchView.vue') },
+  { path: '/carry-forward', name: 'carry-forward', component: () => import('@/views/CarryForwardView.vue')
+},
   { path: '/:pathMatch(.*)*', redirect: '/' }
 ]
 

@@ -103,6 +103,7 @@ function cancelHold() {
     <header class="sys-row__head">
       <span class="sys-row__sysid mono">{{ sysId }}</span>
       <span class="sys-row__sep mono">/</span>
+      <span v-if="isCarried" class="console__carried mono" title="Continued from last voyage">↻ CONT</span>
       <span class="sys-row__status mono">{{ status.label }}</span>
       <span class="sys-row__dot" :class="`sys-row__dot--${status.code}`" aria-hidden="true" />
     </header>
@@ -390,6 +391,11 @@ function cancelHold() {
 }
 .sys-row__avg--new {
   color: var(--signal-low);
+}
+.console__carried {
+  color: var(--cyan-deep);
+  letter-spacing: 0.14em;
+  margin-right: 4px;
 }
 
 @media (max-width: 720px) {

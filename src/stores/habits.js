@@ -295,19 +295,25 @@ function yesterdaySummary() {
   }
 
   /**
-   * When a new expedition launches, the user can carry habits forward.
-   * v1 just clones the active set with new IDs and the new expeditionId.
+   * Carry forward selected habits from a previous expedition into the new active one.
+   * Each carried habit gets a fresh ID and the new expeditionId, but a `carriedFrom`
+   * field preserves the lineage — the original habit ID — so we can show "continued
+   * from last voyage" markers and (later) trace habit history across voyages.
+   *
+   * @param {string[]} habitIds — ids of habits in the previous voyage to carry forward
+   * @param {string}   toExpeditionId — id of the new (current) voyage
    */
-  function carryHabitsForward(fromExpeditionId, toExpeditionId) {
-    const carryover = habits.value
-      .filter(h => h.expeditionId === fromExpeditionId)
-      .map(h => ({
-        ...h,
-        id: `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
-        expeditionId: toExpeditionId,
-        createdAt: todayISO()
-      }))
+  function carryHabitsForward(habitIds, toExpeditionId) {
+    const sourceHabits = habits.value.filter(h => habitIds.includes(h.id))
+    const carryover = sourceHabits.map(h => ({
+      ...h,
+      id: `hab_${Date.now()}_${Math.random().toString(36).slice(2, 6)}`,
+      expeditionId: toExpeditionId,
+      createdAt: todayISO(),
+      carriedFrom: h.id  // lineage marker
+    }))
     habits.value = [...habits.value, ...carryover]
+    return carryover
   }
 
   /**

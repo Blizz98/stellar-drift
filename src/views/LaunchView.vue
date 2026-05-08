@@ -5,12 +5,14 @@ import { useExpeditionStore } from '@/stores/expedition'
 import { useCaptainStore } from '@/stores/captain'
 import { SHIPS, shipById } from '@/data/ships'
 import { destinationById } from '@/data/destinations'
+import { useHabitsStore } from '@/stores/habits'
 import DestinationPicker from '@/components/DestinationPicker.vue'
 import ShipPicker from '@/components/ShipPicker.vue'
 
 const router = useRouter()
 const expedition = useExpeditionStore()
 const captain = useCaptainStore()
+const habits = useHabitsStore()
 
 // ——— form state ———
 const selectedShipId = ref('explorer')
@@ -50,7 +52,17 @@ function launch() {
     shipClass: ship.value.id,
     durationDays: computedDuration.value
   })
-  router.push('/habits')
+
+  // If there's a previous voyage with habits to potentially carry forward,
+  // route to the carry-forward step. Otherwise go straight to systems setup.
+  const hasPrevWithHabits = expedition.history[0] &&
+    habits.habits.some(h => h.expeditionId === expedition.history[0].id)
+
+  if (hasPrevWithHabits) {
+    router.push('/carry-forward')
+  } else {
+    router.push('/habits')  // or '/' depending on your current behavior
+  }
 }
 </script>
 
