@@ -1,84 +1,103 @@
-/**
- * Ship catalog. Each ship has:
- *   id            string
- *   name          string
- *   tagline       short flavor line
- *   rankRequired  captain rank to unlock (1..8)
- *   maxRangeDays  longest voyage this ship can attempt
- *   velocity      light-days per voyage-day (used to compute duration from distance)
- *   bonus         which system category this hull is biased toward, or null for balanced
- *   description   longer prose for the ship card
- *
- * Voyage duration formula:  durationDays = ceil(distanceLightDays / ship.velocity)
- * The ship's maxRangeDays gates what destinations are even attemptable.
- */
-
 export const SHIPS = [
   {
     id: 'explorer',
     name: 'Explorer',
-    tagline: 'Balanced. Built to begin.',
-    rankRequired: 1,
+    tagline: 'A first vessel.',
+    rankRequired: 1,    // Cadet
     maxRangeDays: 14,
     velocity: 1.0,
     bonus: null,
-    description:
-      'A standard-issue scout. No specialization, no glamour — just enough hull to get out, look around, and come home. Every captain starts here. Most return to it on purpose.'
+    description: 'A small, dependable ship for short voyages. Built for first crossings — modest range, simple systems, forgiving handling. Every captain begins here.'
   },
   {
     id: 'frigate',
     name: 'Frigate',
-    tagline: 'Reinforced. Built for strain.',
-    rankRequired: 2,
+    tagline: 'Workhorse of the inner systems.',
+    rankRequired: 2,    // Ensign
     maxRangeDays: 30,
     velocity: 1.1,
     bonus: 'engineering',
-    description:
-      'Thicker armor, redundant systems, brutal acceleration profile. Engineering crews swear by it. Favor this hull when the voyage will demand sustained physical effort.'
+    description: 'A stout dual-engine vessel that handles longer crossings with patience. Cargo bays for substantial provisions; reinforced hull for casual debris. The standard ship of the inner systems.'
   },
   {
     id: 'science-vessel',
     name: 'Science Vessel',
-    tagline: 'Patient. Built to learn.',
-    rankRequired: 3,
+    tagline: 'Equipped to learn.',
+    rankRequired: 3,    // Lieutenant
     maxRangeDays: 45,
     velocity: 1.2,
     bonus: 'research',
-    description:
-      'Half the ship is laboratory. A research vessel rewards voyages structured around learning — curricula, courses, the long study of one thing. The library is enormous.'
+    description: 'Built around its sensor array. Slower in atmosphere but observation-rated for deep voyages. Lieutenants commanding science vessels build the catalogs everyone else uses.'
   },
   {
     id: 'cutter',
     name: 'Cutter',
-    tagline: 'Sharp. Built to cut a course.',
-    rankRequired: 4,
+    tagline: 'Fast, sharp, focused.',
+    rankRequired: 4,    // Commander
     maxRangeDays: 60,
     velocity: 1.4,
     bonus: 'navigation',
-    description:
-      'A long-range vessel with an obsessive nav suite. Cutters are flown by captains who know exactly where they are going and want to get there cleanly. Focus voyages thrive in this hull.'
+    description: 'Sleek and aggressive, with high velocity for medium-range crossings. Favored by Commanders who value covering distance over carrying mass. The cutter rewards captains who plan ahead.'
+  },
+  {
+    id: 'corvette',
+    name: 'Corvette',
+    tagline: 'A captain\'s first command.',
+    rankRequired: 5,    // Captain
+    maxRangeDays: 70,
+    velocity: 1.5,
+    bonus: null,
+    description: 'A versatile mid-tier vessel — neither specialist nor generalist, but capable across all categories. The corvette is what a captain receives upon their first formal commission. Good for crews still finding their identity.'
   },
   {
     id: 'long-hauler',
     name: 'Long-Hauler',
-    tagline: 'Generous. Built to sustain.',
-    rankRequired: 6,
+    tagline: 'Patience as a system.',
+    rankRequired: 6,    // Senior Captain
     maxRangeDays: 75,
     velocity: 1.5,
     bonus: 'life-support',
-    description:
-      'Heavy on hydroponics, generous quarters, exceptional medical bay. The hull of choice when a voyage is fundamentally about recovery, sleep, food, and stillness — the slow systems that make the rest possible.'
+    description: 'A heavy ship built for endurance. Generous quarters, redundant life support, food stocks for the long dark. The long-hauler is the ship for crews who have learned that voyages take time.'
+  },
+  {
+    id: 'liner',
+    name: 'Star Liner',
+    tagline: 'Comfortable across the void.',
+    rankRequired: 7,    // Fleet Captain
+    maxRangeDays: 85,
+    velocity: 1.6,
+    bonus: 'life-support',
+    description: 'Crew accommodations rivaling any inner-system station. The liner moves crews and dignitaries across long distances in conditions that don\'t feel like sacrifice. Trusted only to Fleet Captains.'
   },
   {
     id: 'pathfinder',
     name: 'Pathfinder',
-    tagline: 'Flagship. Built to reach.',
-    rankRequired: 8,
+    tagline: 'A voyage in itself.',
+    rankRequired: 8,    // Commodore
     maxRangeDays: 90,
     velocity: 1.7,
     bonus: null,
-    description:
-      'A balanced flagship reserved for Admirals. Reaches destinations no other hull can. Most who fly it have flown everything else first; they earned the patience the long voyage requires.'
+    description: 'A deep-range vessel built around accumulated lessons. Pathfinders carry equipment for every contingency — extended life support, redundant comms, scientific suite, defensive measures. The Commodore\'s ship.'
+  },
+  {
+    id: 'voyager',
+    name: 'Voyager',
+    tagline: 'Beyond the charts.',
+    rankRequired: 9,    // Rear Admiral
+    maxRangeDays: 110,
+    velocity: 1.8,
+    bonus: null,
+    description: 'Built for the spaces past where most fleets go. The voyager is rated for crossings that make the long-hauler\'s endurance look conservative. Rear Admirals receive these ships when their service record demands a destination no one else has reached.'
+  },
+  {
+    id: 'flagship',
+    name: 'Flagship',
+    tagline: 'The captain\'s mark, made vessel.',
+    rankRequired: 10,   // Admiral
+    maxRangeDays: 130,
+    velocity: 2.0,
+    bonus: null,
+    description: 'The ship of an Admiral. Range and velocity beyond any other vessel; bonuses across all four ship systems. The flagship is less a transport and more a statement — a captain has reached the rank where the destination is no longer the limit.'
   }
 ]
 
