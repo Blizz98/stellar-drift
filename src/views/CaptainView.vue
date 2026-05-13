@@ -1,6 +1,6 @@
 <script setup>
 import { ref, computed, watch } from 'vue'
-import { useCaptainStore, RANKS } from '@/stores/captain'
+import { useCaptainStore, RANKS, rankDisplay } from '@/stores/captain'
 import { useExpeditionStore } from '@/stores/expedition'
 import { SHIPS } from '@/data/ships'
 import { DESTINATIONS } from '@/data/destinations'
@@ -62,21 +62,24 @@ const unlockedHulls = computed(() =>
 const reachableDests = computed(() =>
   DESTINATIONS.filter(d => d.minRank <= captain.currentRank.rank).length
 )
+const hiddenShipCount = computed(() => SHIPS.length - visibleShips.value.length)
 
 // ——— Rank flavor lines ———
 const RANK_FLAVOR = {
-  1: 'Newly commissioned. Every voyage begins here.',
-  2: 'A junior officer. Trusted with first crossings.',
-  3: 'Captain of small vessels. Short distances, real responsibility.',
-  4: 'Mid-deep voyages. The Cutter awaits.',
-  5: 'A captain in full. Long crossings. Real cargo.',
-  6: 'Veteran of the deep. The Long-Hauler is yours.',
-  7: 'Fleet command. Your record speaks for you.',
-  8: 'Terminal rank. The Pathfinder is yours. There is no further insignia.'
+  1:  'Newly commissioned. Every voyage begins here.',
+  2:  'A junior officer. Trusted with first crossings.',
+  3:  'Captain of small vessels. Short distances, real responsibility.',
+  4:  'Mid-deep voyages. The Cutter awaits.',
+  5:  'A captain in full. Long crossings. Real cargo.',
+  6:  'Veteran of the deep. The Long-Hauler is yours.',
+  7:  'Fleet command. Your record speaks for you.',
+  8:  'A commodore commands voyages of consequence. The Pathfinder is yours.',
+  9:  'Past where the charts go. Voyager-class hulls open to you.',
+  10: 'Terminal rank. The Flagship is yours. The journey continues regardless.'
 }
 
-function rankFlavor(rank) {
-  return RANK_FLAVOR[rank] || ''
+function rankFlavor(rankNum) {
+  return RANK_FLAVOR[rankNum] || ''
 }
 
 // ——— Recent grants (commissions log) ———
@@ -92,6 +95,20 @@ function formatGrantDate(iso) {
 function shipUnlocked(ship) {
   return ship.rankRequired <= captain.currentRank.rank
 }
+/**
+ * Hangar bay shows all unlocked ships plus the next 2 locked ones.
+ * Keeps the page from cluttering as the catalog grows past what the
+ * captain can actually use yet.
+ */
+const visibleShips = computed(() => {
+  const rank = captain.currentRank.rank
+  const unlocked = SHIPS.filter(s => s.rankRequired <= rank)
+  const lockedAhead = SHIPS
+    .filter(s => s.rankRequired > rank)
+    .sort((a, b) => a.rankRequired - b.rankRequired)
+    .slice(0, 2)
+  return [...unlocked, ...lockedAhead]
+})
 </script>
 
 <template>
@@ -130,8 +147,8 @@ function shipUnlocked(ship) {
           </template>
         </div>
         <p class="hero__rank-line">
-          <span class="display hero__rank-name">{{ captain.currentRank.name }}</span>
-          <span class="mono hero__rank-num">RANK {{ String(captain.currentRank.rank).padStart(2, '0') }}</span>
+          <span class="display hero__rank-name">{{ rankDisplay(captain.currentRank) }}</span>
+          <span class="mono hero__rank-num">STEP {{ String(captain.currentStep).padStart(2, '0') }}</span>
         </p>
         <p class="hero__flavor display">{{ rankFlavor(captain.currentRank.rank) }}</p>
       </div>
@@ -173,16 +190,16 @@ function shipUnlocked(ship) {
       <div v-if="!captain.isMaxRank" class="prog-instrument">
         <!-- Current rank insignia (left) -->
         <div class="prog-instrument__current">
-          <RankInsignia :rank="captain.currentRank.rank" :size="56" />
-          <span class="mono prog-instrument__current-label">{{ captain.currentRank.name }}</span>
+          <RankInsignia :rank="captain.currentRank.rank" :grade="captain.currentRank.grade" :size="56" />
+          <span class="mono prog-instrument__current-label">{{ rankDisplay(captain.currentRank) }}</span>
         </div>
 
         <!-- Bar between -->
         <div class="prog-instrument__bar-wrap">
           <div class="prog-instrument__readout mono">
-            <span class="prog-instrument__current-xp">{{ captain.xpIntoRank.toLocaleString() }}</span>
+            <span class="prog-instrument__current-xp">{{ captain.xpIntoStep.toLocaleString() }}</span>
             <span class="prog-instrument__sep">/</span>
-            <span class="prog-instrument__needed-xp">{{ captain.xpForNextRank.toLocaleString() }}</span>
+            <span class="prog-instrument__needed-xp">{{ captain.xpForNextStep.toLocaleString() }}</span>
             <span class="prog-instrument__unit">XP</span>
           </div>
           <div class="prog-instrument__bar">
@@ -195,14 +212,14 @@ function shipUnlocked(ship) {
             </div>
           </div>
           <p class="prog-instrument__remaining mono">
-            {{ (captain.xpForNextRank - captain.xpIntoRank).toLocaleString() }} XP TO ADVANCE
+            {{ (captain.xpForNextStep - captain.xpIntoStep).toLocaleString() }} XP TO ADVANCE
           </p>
         </div>
 
         <!-- Next rank insignia (right) -->
         <div class="prog-instrument__next">
-          <RankInsignia :rank="captain.nextRank.rank" :size="56" />
-          <span class="mono prog-instrument__next-label">{{ captain.nextRank.name }}</span>
+          <RankInsignia :rank="captain.nextRank.rank" :grade="captain.nextRank.grade" :size="56" />
+          <span class="mono prog-instrument__next-label">{{ rankDisplay(captain.nextRank) }}</span>
         </div>
       </div>
 
@@ -225,34 +242,38 @@ function shipUnlocked(ship) {
 
       <ol class="rank-list">
         <li
-          v-for="r in RANKS"
-          :key="r.rank"
+          v-for="r in captain.visibleLadderSteps"
+          :key="r.step"
           class="rank-node"
           :class="{
-            'rank-node--past':    r.rank < captain.currentRank.rank,
-            'rank-node--current': r.rank === captain.currentRank.rank,
-            'rank-node--future':  r.rank > captain.currentRank.rank
+            'rank-node--past':    r.step < captain.currentStep,
+            'rank-node--current': r.step === captain.currentStep,
+            'rank-node--future':  r.step > captain.currentStep
           }"
         >
           <div class="rank-node__insignia-wrap">
-            <RankInsignia :rank="r.rank" :size="44" />
+            <RankInsignia :rank="r.rank" :grade="r.grade" :size="44" />
           </div>
           <div class="rank-node__body">
             <div class="rank-node__head">
-              <span class="display rank-node__name">{{ r.name }}</span>
-              <span class="mono rank-node__num">RANK {{ String(r.rank).padStart(2, '0') }}</span>
+              <span class="display rank-node__name">{{ r.name }} {{ r.grade }}</span>
+              <span class="mono rank-node__num">STEP {{ String(r.step).padStart(2, '0') }}</span>
             </div>
             <p class="rank-node__flavor">{{ rankFlavor(r.rank) }}</p>
             <p class="mono rank-node__threshold">
-              <template v-if="r.rank === 1">STARTING POSITION</template>
+              <template v-if="r.step === 1">STARTING POSITION</template>
               <template v-else>{{ r.minXP.toLocaleString() }} XP THRESHOLD</template>
             </p>
           </div>
-          <span v-if="r.rank === captain.currentRank.rank" class="rank-node__tag mono">CURRENT</span>
-          <span v-else-if="r.rank < captain.currentRank.rank" class="rank-node__tag rank-node__tag--past mono">ACHIEVED</span>
+          <span v-if="r.step === captain.currentStep" class="rank-node__tag mono">CURRENT</span>
+          <span v-else-if="r.step < captain.currentStep" class="rank-node__tag rank-node__tag--past mono">ACHIEVED</span>
           <span v-else class="rank-node__tag rank-node__tag--future mono">LOCKED</span>
         </li>
       </ol>
+      <aside v-if="captain.hiddenStepCount > 0" class="ladder__hidden mono">
+        ◇ {{ captain.hiddenStepCount }} further {{ captain.hiddenStepCount === 1 ? 'rank' : 'ranks' }} await.
+        Continue voyaging to reveal.
+      </aside>
     </section>
 
     <!-- ============================================================
@@ -266,7 +287,7 @@ function shipUnlocked(ship) {
 
       <div class="hangar__grid">
         <article
-          v-for="ship in SHIPS"
+          v-for="ship in visibleShips"
           :key="ship.id"
           class="ship"
           :class="{ 'ship--locked': !shipUnlocked(ship) }"
@@ -319,6 +340,10 @@ function shipUnlocked(ship) {
           </footer>
         </article>
       </div>
+      <aside v-if="hiddenShipCount > 0" class="hangar__hidden mono">
+        ◇ {{ hiddenShipCount }} further {{ hiddenShipCount === 1 ? 'hull' : 'hulls' }} await.
+        Continue voyaging to reveal.
+      </aside>
     </section>
 
     <!-- ============================================================
@@ -1026,4 +1051,16 @@ function shipUnlocked(ship) {
 
   .commission { grid-template-columns: 50px 8px 1fr auto; }
 }
+.hangar__hidden, .ladder__hidden {
+  margin-top: var(--s-3);
+  padding: var(--s-3) var(--s-4);
+  text-align: center;
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  color: var(--signal-low);
+  background: var(--hull);
+  border: 1px dashed var(--line);
+  border-radius: var(--radius);
+}
+
 </style>

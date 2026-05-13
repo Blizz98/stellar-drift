@@ -1,16 +1,23 @@
 <script setup>
 import { computed } from 'vue'
-import { useCaptainStore } from '@/stores/captain'
+import { useCaptainStore, rankDisplay } from '@/stores/captain'
 import { SHIPS } from '@/data/ships'
+import RankInsignia from '@/components/RankInsignia.vue'
 
 const captain = useCaptainStore()
 
-const lu = computed(() => captain.pendingLevelUp)
+const pending = computed(() => captain.pendingLevelUp)
+const isNamed = computed(() => pending.value?.namedPromotion === true)
 
-// Find any ships unlocked specifically by this rank crossing
-const newShips = computed(() => {
-  if (!lu.value) return []
-  return SHIPS.filter(s => s.rankRequired === lu.value.to.rank)
+const fromDisplay = computed(() => pending.value ? rankDisplay(pending.value.from) : '')
+const toDisplay   = computed(() => pending.value ? rankDisplay(pending.value.to)   : '')
+
+// Newly unlocked ships, only when this is a named promotion
+const unlockedShips = computed(() => {
+  if (!pending.value || !isNamed.value) return []
+  const fromRank = pending.value.from.rank
+  const toRank   = pending.value.to.rank
+  return SHIPS.filter(s => s.rankRequired > fromRank && s.rankRequired <= toRank)
 })
 
 function dismiss() {
@@ -20,42 +27,63 @@ function dismiss() {
 
 <template>
   <Transition name="overlay">
-    <div v-if="lu" class="overlay" role="dialog" aria-modal="true" aria-labelledby="lu-title">
-      <div class="modal">
-        <div class="modal__rays" aria-hidden="true">
-          <span v-for="i in 24" :key="i" class="modal__ray" :style="{ transform: `rotate(${i * 15}deg)` }" />
+    <div v-if="pending" class="overlay" :class="{ 'overlay--named': isNamed, 'overlay--grade': !isNamed }"
+         role="dialog" aria-modal="true">
+      <div class="modal" :class="{ 'modal--named': isNamed }">
+
+        <!-- Background ray pattern, stronger for named promotions -->
+        <div v-if="isNamed" class="modal__rays" aria-hidden="true">
+          <span v-for="i in 12" :key="i" class="modal__ray" :style="{ transform: `rotate(${i * 30}deg)` }" />
         </div>
 
         <header class="modal__head">
-          <span class="label modal__kicker">Promotion · captain's commission</span>
-          <h2 id="lu-title" class="display modal__title">Ranked up.</h2>
+          <span class="label modal__kicker">
+            {{ isNamed ? 'Promotion · new rank earned' : 'Grade advancement' }}
+          </span>
+          <h2 class="display modal__title">
+            {{ isNamed ? 'Promoted.' : 'Grade up.' }}
+          </h2>
         </header>
 
-        <div class="modal__transition mono">
-          <span class="modal__from">{{ lu.from.name.toUpperCase() }}</span>
-          <span class="modal__arrow" aria-hidden="true">→</span>
-          <span class="modal__to">{{ lu.to.name.toUpperCase() }}</span>
-        </div>
+        <!-- The actual rank progression -->
+        <section class="progression">
+          <div class="step step--from">
+            <RankInsignia
+              :rank="pending.from.rank"
+              :grade="pending.from.grade"
+              :size="isNamed ? 64 : 56"
+            />
+            <span class="step__label mono">{{ fromDisplay }}</span>
+          </div>
 
-        <p class="modal__quote">
-          The fleet records your new rank. There is no ceremony — only the next voyage.
-        </p>
+          <div class="arrow" aria-hidden="true">→</div>
 
-        <section v-if="newShips.length > 0" class="modal__unlocks">
-          <header class="modal__unlocks-head">
-            <span class="label">Newly available hulls</span>
-          </header>
-          <ul class="modal__unlocks-list">
-            <li v-for="s in newShips" :key="s.id" class="modal__unlock">
-              <span class="modal__unlock-name">{{ s.name }}</span>
-              <span class="modal__unlock-tag">{{ s.tagline }}</span>
-              <span class="modal__unlock-range mono">RANGE {{ s.maxRangeDays }}d · VEL {{ s.velocity.toFixed(1) }}c</span>
+          <div class="step step--to">
+            <div class="step__glow" />
+            <RankInsignia
+              :rank="pending.to.rank"
+              :grade="pending.to.grade"
+              :size="isNamed ? 96 : 72"
+            />
+            <span class="step__label step__label--to mono">{{ toDisplay }}</span>
+          </div>
+        </section>
+
+        <!-- Unlocked ships, only on named promotions -->
+        <section v-if="unlockedShips.length > 0" class="unlocks">
+          <p class="label unlocks__kicker">New hulls available</p>
+          <ul class="unlocks__list">
+            <li v-for="ship in unlockedShips" :key="ship.id" class="unlock">
+              <span class="display unlock__name">{{ ship.name }}</span>
+              <span class="mono unlock__tag">{{ ship.tagline }}</span>
             </li>
           </ul>
         </section>
 
         <footer class="modal__foot">
-          <button class="btn btn-primary" @click="dismiss">Acknowledge →</button>
+          <button class="btn btn-primary modal__ack" @click="dismiss">
+            {{ isNamed ? 'Acknowledge promotion →' : 'Continue →' }}
+          </button>
         </footer>
       </div>
     </div>
@@ -67,151 +95,171 @@ function dismiss() {
   position: fixed;
   inset: 0;
   z-index: 100;
-  background: rgba(6, 8, 15, 0.85);
-  backdrop-filter: blur(8px);
   display: grid;
   place-items: center;
   padding: var(--s-5);
+  background: rgba(6, 8, 15, 0.88);
+  backdrop-filter: blur(10px);
 }
+.overlay--named { background: rgba(6, 8, 15, 0.92); }
 
 .modal {
   position: relative;
-  max-width: 540px;
   width: 100%;
-  padding: var(--s-7) var(--s-6) var(--s-6);
-  background:
-    radial-gradient(500px 300px at 50% 0%, rgba(232, 168, 70, 0.12), transparent 70%),
-    var(--bulkhead);
-  border: 1px solid var(--amber);
+  max-width: 520px;
+  background: var(--bulkhead);
+  border: 1px solid var(--amber-deep);
   border-radius: var(--radius-lg);
-  box-shadow: 0 0 80px -16px rgba(232, 168, 70, 0.5);
+  box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.7);
   overflow: hidden;
-  text-align: center;
+  padding: var(--s-6);
+}
+.modal--named {
+  border-color: var(--amber);
+  box-shadow: 0 20px 60px -10px rgba(0, 0, 0, 0.7), var(--glow-amber);
 }
 
-/* — Background ray sweep — */
+/* Rotating ray pattern, only on named promotions */
 .modal__rays {
   position: absolute;
   inset: 0;
   display: grid;
   place-items: center;
   pointer-events: none;
-  opacity: 0.18;
+  opacity: 0.4;
+  animation: rays-rotate 60s linear infinite;
 }
 .modal__ray {
   position: absolute;
-  width: 1px;
-  height: 200px;
-  background: linear-gradient(180deg, transparent, var(--amber));
-  transform-origin: bottom center;
-  animation: rays 30s linear infinite;
+  width: 800px;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, var(--amber-deep), transparent);
+  transform-origin: center;
+  opacity: 0.3;
 }
-@keyframes rays { to { transform: rotate(360deg); } }
+@keyframes rays-rotate {
+  from { transform: rotate(0deg); }
+  to   { transform: rotate(360deg); }
+}
 
-/* — Content — */
-.modal__head { position: relative; margin-bottom: var(--s-5); }
+.modal__head {
+  text-align: center;
+  margin-bottom: var(--s-5);
+  position: relative;
+  z-index: 1;
+}
 .modal__kicker { color: var(--amber-deep); }
 .modal__title {
-  font-size: 56px;
+  font-size: 36px;
   margin: var(--s-2) 0 0;
   color: var(--signal);
-  line-height: 1.05;
+  line-height: 1;
+}
+.modal--named .modal__title { font-size: 42px; color: var(--amber); }
+
+.progression {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  gap: var(--s-4);
+  align-items: center;
+  margin: var(--s-5) 0;
+  position: relative;
+  z-index: 1;
 }
 
-.modal__transition {
-  position: relative;
+.step {
   display: flex;
-  justify-content: center;
-  align-items: baseline;
-  gap: var(--s-3);
-  font-size: 14px;
-  letter-spacing: 0.18em;
-  margin-bottom: var(--s-4);
+  flex-direction: column;
+  align-items: center;
+  gap: var(--s-2);
+  position: relative;
 }
-.modal__from { color: var(--signal-low); }
-.modal__arrow { color: var(--amber); font-size: 18px; }
-.modal__to {
+.step--from { color: var(--signal-low); opacity: 0.6; }
+.step--to   { color: var(--amber); }
+
+.step__glow {
+  position: absolute;
+  inset: -16px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(232,168,70,0.25), transparent 70%);
+  animation: step-glow 3s ease-in-out infinite;
+}
+@keyframes step-glow {
+  0%, 100% { opacity: 0.6; transform: scale(1); }
+  50%      { opacity: 1; transform: scale(1.05); }
+}
+
+.step__label {
+  font-size: 10px;
+  letter-spacing: 0.14em;
+}
+.step__label--to {
   color: var(--amber);
-  font-size: 18px;
-  text-shadow: 0 0 12px var(--amber);
-  animation: rank-glow 2.4s ease-in-out infinite;
-}
-@keyframes rank-glow {
-  0%, 100% { text-shadow: 0 0 12px var(--amber); }
-  50%      { text-shadow: 0 0 24px var(--amber); }
+  font-size: 12px;
 }
 
-.modal__quote {
-  position: relative;
-  color: var(--signal-dim);
-  font-size: 14px;
-  max-width: 380px;
-  margin: 0 auto var(--s-5);
-  line-height: 1.6;
-  font-style: italic;
+.arrow {
+  font-size: 24px;
+  color: var(--amber-deep);
+  font-family: var(--font-mono);
 }
 
-/* — Unlock section — */
-.modal__unlocks {
-  position: relative;
-  text-align: left;
+.unlocks {
   padding: var(--s-4);
   background: var(--hull);
   border: 1px solid var(--line);
+  border-left: 2px solid var(--amber);
   border-radius: var(--radius);
-  margin-bottom: var(--s-5);
+  margin-top: var(--s-4);
+  position: relative;
+  z-index: 1;
 }
-.modal__unlocks-head { margin-bottom: var(--s-3); }
-.modal__unlocks-list {
+.unlocks__kicker { color: var(--amber-deep); margin-bottom: var(--s-3); display: block; }
+.unlocks__list {
   list-style: none;
-  padding: 0; margin: 0;
+  margin: 0;
+  padding: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--s-2);
+}
+.unlock {
+  display: flex;
+  align-items: baseline;
   gap: var(--s-3);
 }
-.modal__unlock {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--s-2);
-  align-items: baseline;
-}
-.modal__unlock-name {
-  font-size: 15px;
-  color: var(--signal);
-  grid-column: 1;
-}
-.modal__unlock-tag {
-  grid-column: 1;
-  font-size: 12px;
-  color: var(--signal-low);
-  font-style: italic;
-}
-.modal__unlock-range {
-  grid-column: 2;
-  grid-row: 1 / span 2;
+.unlock__name { font-size: 18px; color: var(--signal); }
+.unlock__tag {
   font-size: 9px;
-  color: var(--cyan);
-  align-self: center;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.14em;
+  color: var(--signal-low);
 }
 
-.modal__foot { position: relative; }
+.modal__foot {
+  margin-top: var(--s-5);
+  display: flex;
+  justify-content: center;
+  position: relative;
+  z-index: 1;
+}
+.modal__ack {
+  padding: 12px 24px;
+  font-size: 12px;
+}
 
-/* — Transitions — */
 .overlay-enter-active { transition: opacity var(--t-med) var(--ease); }
 .overlay-leave-active { transition: opacity var(--t-fast) var(--ease); }
 .overlay-enter-from, .overlay-leave-to { opacity: 0; }
-
-.overlay-enter-active .modal {
-  animation: modal-in 520ms var(--ease-out);
-}
+.overlay-enter-active .modal { animation: modal-in 480ms var(--ease-out); }
 @keyframes modal-in {
-  from { transform: translateY(20px) scale(0.94); opacity: 0; }
+  from { transform: translateY(20px) scale(0.96); opacity: 0; }
   to   { transform: translateY(0)    scale(1);    opacity: 1; }
 }
 
 @media (max-width: 720px) {
-  .modal { padding: var(--s-5) var(--s-4); }
-  .modal__title { font-size: 38px; }
+  .modal__title { font-size: 28px; }
+  .modal--named .modal__title { font-size: 32px; }
+  .progression { gap: var(--s-3); }
+  .arrow { font-size: 18px; }
 }
 </style>
