@@ -2,6 +2,7 @@ import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { loadJSON, saveJSON } from '@/composables/usePersistence'
 import { useExpeditionStore } from './expedition'
+import { todayISO, formatLocalISO, parseLocalISO } from '@/utils/date'
 
 /**
  * Habits are scoped to an Expedition. When you launch a new run, you bring
@@ -51,8 +52,6 @@ export const CATEGORIES = {
     icon: '◉'
   }
 }
-
-const todayISO = () => new Date().toISOString().slice(0, 10)
 
 /**
  * Migrates older log entries from the binary { completed: bool } shape to the
@@ -318,33 +317,41 @@ function yesterdaySummary() {
 
   /**
    * Per-habit completion history across a voyage. Returns an array of day entries
-   * from voyage start through today (or through endedAt for archived voyages).
+   * from voyage start through the voyage's END date (not just today) — past days
+   * have real completion data, today has current data, future days are hollow.
    *
-   * Each entry: { day, dateISO, isToday, isPast, isFuture, completion }
-   *   - completion is 0..1 for past days, null for today/future
+   * Each entry: { day, dateISO, isToday, isPast, isFuture, habitExisted, completion }
+   *   - completion is 0..1 for past days when habit existed, null otherwise
    *   - For multi-completion habits, completion = count / completionsNeeded (capped at 1)
-   *   - For binary habits, completion is 0 or 1
    *
-   * Used by the Systems view to render per-habit voyage strips.
+   * Active voyages: strip covers start → start + durationDays - 1
+   * Archived voyages: strip covers start → endedAt (the day the voyage actually ended)
+   *
+   * @param {Object} habit - the habit being charted
+   * @param {Object} voyage - { startedAt, durationDays, endedAt? } from expedition store
    */
-  function habitVoyageStrip(habit, voyageStartedAt, voyageEndedAt = null) {
-    const start = new Date(voyageStartedAt + 'T00:00:00')
-    const today = new Date(todayISO() + 'T00:00:00')
-    const end = voyageEndedAt
-      ? new Date(voyageEndedAt + 'T00:00:00')
-      : today
-    const habitCreated = new Date(habit.createdAt + 'T00:00:00')
+  function habitVoyageStrip(habit, voyage) {
+    if (!voyage) return []
 
-    // Voyage spans from start to end (or today, whichever is earlier for active voyages)
-    const stripEnd = today < end ? today : end
-    const totalDays = Math.max(1, Math.floor((end - start) / 86_400_000) + 1)
+    const start = parseLocalISO(voyage.startedAt)
+    const today = parseLocalISO(todayISO())
+    const habitCreated = parseLocalISO(habit.createdAt)
+
+    let totalDays
+    if (voyage.endedAt) {
+      const ended = parseLocalISO(voyage.endedAt)
+      totalDays = Math.max(1, Math.floor((ended - start) / 86_400_000) + 1)
+    } else {
+      totalDays = voyage.durationDays
+    }
+
     const todayDayNum = Math.floor((today - start) / 86_400_000) + 1
 
     return Array.from({ length: totalDays }, (_, i) => {
       const date = new Date(start)
       date.setDate(date.getDate() + i)
       const dayNum = i + 1
-      const dateISO = date.toISOString().slice(0, 10)
+      const dateISO = formatLocalISO(date)
       const isToday = dayNum === todayDayNum
       const isPast = dayNum < todayDayNum
       const isFuture = dayNum > todayDayNum
@@ -373,8 +380,8 @@ function yesterdaySummary() {
    * Per-habit completion percentage across past days only (excluding today).
    * Returns 0..1 or null if no eligible past days exist.
    */
-  function habitPastAverage(habit, voyageStartedAt) {
-    const strip = habitVoyageStrip(habit, voyageStartedAt)
+  function habitPastAverage(habit, voyage) {
+    const strip = habitVoyageStrip(habit, voyage)
     const past = strip.filter(d => d.isPast && d.habitExisted)
     if (past.length === 0) return null
     const sum = past.reduce((s, d) => s + (d.completion ?? 0), 0)

@@ -38,12 +38,12 @@ const sysId = computed(() =>
 // Voyage strip data
 const strip = computed(() => {
   if (!expedition.current) return []
-  return habits.habitVoyageStrip(props.habit, expedition.current.startedAt)
+  return habits.habitVoyageStrip(props.habit, expedition.current)
 })
 
 const pastAverage = computed(() => {
   if (!expedition.current) return null
-  return habits.habitPastAverage(props.habit, expedition.current.startedAt)
+  return habits.habitPastAverage(props.habit, expedition.current)
 })
 
 const pastAveragePct = computed(() => {

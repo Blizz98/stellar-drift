@@ -46,7 +46,7 @@ const selectedCount = computed(() => selected.value.size)
 // ——— Per-habit stats from previous voyage ———
 function pastCompletionPct(habit) {
   if (!prevVoyage.value) return null
-  const avg = habits.habitPastAverage(habit, prevVoyage.value.startedAt)
+  const avg = habits.habitPastAverage(habit, prevVoyage.value)
   if (avg === null) return null
   return Math.round(avg * 100)
 }

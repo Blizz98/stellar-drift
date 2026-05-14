@@ -30,7 +30,7 @@ function categoryAverage(catKey) {
   const habitsInCat = grouped.value[catKey]
   if (habitsInCat.length === 0) return null
   const averages = habitsInCat
-    .map(h => habits.habitPastAverage(h, expedition.current.startedAt))
+    .map(h => habits.habitPastAverage(h, expedition.current))
     .filter(a => a !== null)
   if (averages.length === 0) return null
   return averages.reduce((s, a) => s + a, 0) / averages.length

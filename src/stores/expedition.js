@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { loadJSON, saveJSON } from '@/composables/usePersistence'
+import { todayISO, parseLocalISO, daysBetween } from '@/utils/date'
 
 /**
  * An Expedition is a discrete run with a beginning and an end.
@@ -16,13 +17,6 @@ import { loadJSON, saveJSON } from '@/composables/usePersistence'
  *   status        'active' | 'completed' | 'abandoned'
  *   endedAt       ISO date string | null
  */
-
-const todayISO = () => new Date().toISOString().slice(0, 10)
-
-const daysBetween = (a, b) => {
-  const ms = new Date(b) - new Date(a)
-  return Math.floor(ms / 86_400_000)
-}
 
 export const useExpeditionStore = defineStore('expedition', () => {
   // ——— state ———
@@ -46,12 +40,12 @@ export const useExpeditionStore = defineStore('expedition', () => {
 
   const daysElapsed = computed(() => {
     if (!current.value) return 0
-    return Math.max(0, daysBetween(current.value.startedAt, todayISO())) + 1
+    return daysBetween(current.value.startedAt, todayISO())
   })
 
   const daysRemaining = computed(() => {
     if (!current.value) return 0
-    return Math.max(0, current.value.durationDays - daysElapsed.value + 1)
+    return current.value.durationDays - daysElapsed.value + 1
   })
 
   const progressPercent = computed(() => {
