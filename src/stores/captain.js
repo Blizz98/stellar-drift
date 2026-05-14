@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { loadJSON, saveJSON } from '@/composables/usePersistence'
+import { todayISO } from '@/utils/date'
 
 /**
  * The Captain's level system — 10 named ranks × 3 grades each = 30 progression steps.
@@ -182,7 +183,7 @@ export const useCaptainStore = defineStore('captain', () => {
     const beforeStep = currentStep.value
     state.value.xp += amount
     state.value.voyageGrants.unshift({
-      date: new Date().toISOString().slice(0, 10),
+      date: todayISO(),
       source,
       amount,
       voyageName: voyageName || '',

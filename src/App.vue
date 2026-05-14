@@ -4,6 +4,7 @@ import { useRoute, useRouter, RouterLink, RouterView } from 'vue-router'
 import { useExpeditionStore } from '@/stores/expedition'
 import { useHabitsStore } from '@/stores/habits'
 import { useCaptainStore, xpForCompletion } from '@/stores/captain'
+import { todayISO } from '@/utils/date'
 import Chronometer from '@/components/Chronometer.vue'
 import LevelUpModal from '@/components/LevelUpModal.vue'
 import GuidedFirstLaunch from '@/components/GuidedFirstLaunch.vue'
@@ -14,8 +15,6 @@ const router = useRouter()
 const expedition = useExpeditionStore()
 const habits = useHabitsStore()
 const captain = useCaptainStore()
-
-const todayISO = () => new Date().toISOString().slice(0, 10)
 
 const navLinks = computed(() => {
   if (expedition.isActive) {
