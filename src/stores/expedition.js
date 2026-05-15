@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia'
 import { computed, ref, watch } from 'vue'
 import { loadJSON, saveJSON } from '@/composables/usePersistence'
-import { todayISO, parseLocalISO, daysBetween } from '@/utils/date'
+import { todayISO, parseLocalISO, daysBetween, daysElapsedSince } from '@/utils/date'
 
 /**
  * An Expedition is a discrete run with a beginning and an end.
@@ -40,7 +40,7 @@ export const useExpeditionStore = defineStore('expedition', () => {
 
   const daysElapsed = computed(() => {
     if (!current.value) return 0
-    return daysBetween(current.value.startedAt, todayISO())
+    return daysElapsedSince(current.value.startedAt) + 1
   })
 
   const daysRemaining = computed(() => {
@@ -50,7 +50,9 @@ export const useExpeditionStore = defineStore('expedition', () => {
 
   const progressPercent = computed(() => {
     if (!current.value) return 0
-    return Math.min(100, Math.round((daysElapsed.value / current.value.durationDays) * 100))
+    const span = Math.max(1, current.value.durationDays - 1)
+    const ratio = (daysElapsed.value - 1) / span
+    return Math.max(0, Math.min(100, Math.round(ratio * 100)))
   })
 
   /**
@@ -60,15 +62,10 @@ export const useExpeditionStore = defineStore('expedition', () => {
    * label always agrees with which sector the today-day-cell visually falls in.
    */
   const currentSector = computed(() => {
-    if (!current.value) return 0
-    const total = current.value.durationDays
-    const sectorSize = total / 4
-    const dayIdx = daysElapsed.value - 1   // zero-indexed
-    for (let s = 0; s < 4; s++) {
-      const toIdx = Math.floor((s + 1) * sectorSize)
-      if (dayIdx < toIdx) return s + 1
-    }
-    return 4   // safety; final day
+    if (!current.value) return 1
+    const sectorSize = current.value.durationDays / 4
+    const dayIdx = daysElapsed.value - 1   // ← zero-based: day 1 → idx 0
+    return Math.min(4, Math.max(1, Math.floor(dayIdx / sectorSize) + 1))
   })
 
   // ——— actions ———

@@ -21,13 +21,14 @@
  * is updated by every navigation function before it changes `step`.
  */
 
-import { computed, ref, onMounted } from 'vue'
+import { computed, ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useExpeditionStore } from '@/stores/expedition'
 import { useHabitsStore, CATEGORIES } from '@/stores/habits'
 import { destinationById } from '@/data/destinations'
 import { shipById } from '@/data/ships'
 import { loadJSON, saveJSON } from '@/composables/usePersistence'
+import { useCaptainStore } from '@/stores/captain'
 
 const ONBOARDING_KEY = 'onboarding.completed'
 
@@ -37,16 +38,29 @@ const habits = useHabitsStore()
 
 const emit = defineEmits(['done'])
 
+const captain = useCaptainStore()
+
 // ——— Visibility ———
-// Show only if onboarding has never been completed AND there's no active voyage.
-// (If the user has an active voyage somehow, they're past first-launch.)
+// Show only if the user has completed the welcome (name prompt) AND
+// hasn't completed this guided launch flow AND has no active voyage.
 const visible = ref(false)
 
-onMounted(() => {
+function checkVisibility() {
   const completed = loadJSON(ONBOARDING_KEY, false)
-  if (!completed && !expedition.isActive) {
-    visible.value = true
-  }
+  visible.value = 
+    captain.state.hasOnboarded &&
+    !completed &&
+    !expedition.isActive
+}
+
+// Initial check on mount
+onMounted(() => {
+  checkVisibility()
+})
+
+// React to onboarding completing (WelcomeModal dismissing)
+watch(() => captain.state.hasOnboarded, () => {
+  checkVisibility()
 })
 
 // ——— Step state ———

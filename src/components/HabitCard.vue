@@ -199,8 +199,8 @@ function handleClick() {
     0deg,
     transparent 0,
     transparent 3px,
-    rgba(176, 232, 156, 0.025) 3px,
-    rgba(176, 232, 156, 0.025) 4px
+    rgba(176, 232, 156, 0.04) 3px,
+    rgba(176, 232, 156, 0.04) 4px
   );
   pointer-events: none;
 }
@@ -392,6 +392,31 @@ function handleClick() {
 }
 .console__fraction-sep   { color: var(--signal-low); font-size: 11px; }
 .console__fraction-total { color: var(--signal-dim);  font-size: 11px; }
+
+.console--nominal {
+  background: linear-gradient(
+    180deg,
+    var(--console) 0%,
+    color-mix(in srgb, var(--verdant) 6%, var(--console)) 100%
+  );
+  border-color: color-mix(in srgb, var(--verdant) 25%, var(--line));
+}
+
+.console--nominal::after {
+  width: 3px;
+  opacity: 1;
+}
+
+.console--nominal .console__name {
+  color: var(--signal);  /* keep at full brightness, not dimmed */
+}
+
+/* Strengthen the body icon glow on complete */
+.console--nominal .console__icon {
+  border-color: var(--cat-color);
+  background: color-mix(in srgb, var(--cat-color) 8%, var(--hull));
+  box-shadow: 0 0 16px -4px var(--cat-color);
+}
 
 @keyframes pulse {
   0%, 100% { opacity: 1; }
