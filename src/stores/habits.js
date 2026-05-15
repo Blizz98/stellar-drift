@@ -130,10 +130,23 @@ export const useHabitsStore = defineStore('habits', () => {
    * Returns 0..1 representing the share of today's habits completed for a given date.
    */
   function completionRate(date) {
-    const list = activeHabits.value
-    if (list.length === 0) return 0
-    const completed = list.filter(h => getLog(date, h.id).completed).length
-    return completed / list.length
+    const dayHabits = activeHabits.value.filter(h => {
+      const created = parseLocalISO(h.createdAt)
+      const d = parseLocalISO(date)
+      return d >= created
+    })
+    if (dayHabits.length === 0) return 0
+
+    // Sum proportional completion (count/needed, capped at 1) for each habit.
+    // A multi-completion habit at 2/3 contributes 0.67 to the day's rate, not 0.
+    // This encourages partial daily effort even when the user can't fully complete.
+    const sum = dayHabits.reduce((acc, h) => {
+      const log = getLog(date, h.id)
+      const needed = h.completionsNeeded ?? 1
+      const count = log.count ?? 0
+      return acc + Math.min(1, count / needed)
+    }, 0)
+    return sum / dayHabits.length
   }
 
   const todayCompletionRate = computed(() => completionRate(todayISO()))

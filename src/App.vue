@@ -9,6 +9,7 @@ import Chronometer from '@/components/Chronometer.vue'
 import LevelUpModal from '@/components/LevelUpModal.vue'
 import GuidedFirstLaunch from '@/components/GuidedFirstLaunch.vue'
 import DebriefModal from '@/components/DebriefModal.vue'
+import WelcomeModal from '@/components/WelcomeModal.vue'
 
 const route = useRoute()
 const router = useRouter()
@@ -143,7 +144,8 @@ watch(
         </Transition>
       </RouterView>
     </main>
-
+    
+    <WelcomeModal />
     <LevelUpModal />
     <GuidedFirstLaunch />
     <DebriefModal />

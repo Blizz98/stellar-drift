@@ -99,7 +99,9 @@ export function isNamedPromotion(beforeStep, afterStep) {
 
 // XP formulas
 export function xpForCompletion(durationDays, avgCompletionRate) {
-  return 100 + Math.round(avgCompletionRate * durationDays * 2)
+  const baseXP = 50 + durationDays * 5
+  const bonusXP = Math.round(avgCompletionRate * durationDays * 4)
+  return baseXP + bonusXP
 }
 
 export function xpForAbandonment(daysElapsed, durationDays) {
@@ -112,12 +114,13 @@ export const useCaptainStore = defineStore('captain', () => {
     name: 'Captain',
     xp: 0,
     voyageGrants: [],
-    personalLog: ''
+    personalLog: '',
+    hasOnboarded: false  // ← new
   }))
 
-  // Backfill personalLog for users on the old shape
-  if (state.value.personalLog === undefined) {
-    state.value.personalLog = ''
+  // Backfill for existing users (they don't need onboarding)
+  if (state.value.hasOnboarded === undefined) {
+    state.value.hasOnboarded = state.value.xp > 0 || state.value.name !== 'Captain'
     saveJSON('captain.state', state.value)
   }
 
@@ -173,7 +176,12 @@ export const useCaptainStore = defineStore('captain', () => {
   })
 
   // ——— Actions ———
-
+  function completeOnboarding(name) {
+    if (name && name.trim()) {
+      state.value.name = name.trim()
+    }
+    state.value.hasOnboarded = true
+  }
   /**
    * Grant XP. If this crosses a step boundary, queue a level-up celebration
    * (with isNamedPromotion flag for distinguishing celebration intensity).
@@ -218,11 +226,11 @@ export const useCaptainStore = defineStore('captain', () => {
   }
 
   return {
-    state, pendingLevelUp,
+    state, pendingLevelUp, 
     currentRank, currentStep, nextRank,
     xpIntoStep, xpForNextStep, progressToNext, isMaxStep,
     visibleLadderSteps, hiddenStepCount,
-    grantXP, clearPendingLevelUp, setName, setPersonalLog,
+    grantXP, clearPendingLevelUp, setName, setPersonalLog, completeOnboarding,
     MAX_STEP, MAX_RANK
   }
 })

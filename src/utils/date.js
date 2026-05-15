@@ -54,3 +54,17 @@ export function addDays(iso, days) {
   d.setDate(d.getDate() + days)
   return formatLocalISO(d)
 }
+
+/**
+ * How many days have elapsed since `startISO`. Today itself counts as
+ * day 1 of the voyage but 0 days *elapsed* — the user is on day 1, not
+ * past it. Use this for "voyage day N" math where N starts at 1 on the
+ * start date.
+ *
+ * Returns: 0 if same day, 1 if next day, etc.
+ */
+export function daysElapsedSince(startISO) {
+  const start = parseLocalISO(startISO)
+  const today = parseLocalISO(todayISO())
+  return Math.max(0, Math.floor((today - start) / 86_400_000))
+}

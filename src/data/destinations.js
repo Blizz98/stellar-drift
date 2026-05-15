@@ -31,7 +31,7 @@ export const DESTINATIONS = [
     id: 'luna-outpost',
     name: 'Luna Outpost',
     subtitle: 'Earth\'s nearest waypoint',
-    distanceDays: 3,
+    distanceDays: 4,
     minRank: 1,
     description: 'A small permanent station on the lunar surface. Three-day voyages here are the standard first run — long enough to feel like a voyage, short enough that even a poorly-configured ship returns intact. Most captains begin their careers with a Luna run.',
     poetic: 'The dust hasn\'t moved in three billion years; you bring news.'
@@ -40,7 +40,7 @@ export const DESTINATIONS = [
     id: 'l4-station',
     name: 'L4 Trojan Station',
     subtitle: 'Earth-Moon Lagrange point',
-    distanceDays: 5,
+    distanceDays: 7,
     minRank: 1,
     description: 'A gravity-stable point ahead of the Moon in its orbit, home to a small research and refueling depot. The voyage is technically simple but the destination is a place that exists only because of math — pure orbital mechanics, nothing else holding it in place.',
     poetic: 'A place held in position by the shape of falling.'
